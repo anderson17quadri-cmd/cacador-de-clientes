@@ -1,0 +1,14 @@
+export const CACHE_TTL = 3600;
+export const MAX_SEARCH_RADIUS = 100000;
+export const DEFAULT_SEARCH_RADIUS = 5000;
+export const MAX_RESULTS_PER_PAGE = 100;
+export const DEFAULT_RESULTS_PER_PAGE = 20;
+export const MAX_CONCURRENT_SEARCHES = 5;
+export const SEARCH_TIMEOUT = 120000;
+export const MAX_RETRIES = 3;
+export const RETRY_DELAY = 2000;
+export const RATE_LIMIT_WINDOW = 60000;
+export const RATE_LIMIT_MAX = 60;
+export const AI_ENRICHMENT_BATCH_SIZE = 10;
+export const AI_ENRICHMENT_CONCURRENCY = 3;
+export const EXPORT_MAX_ROWS = 50000;

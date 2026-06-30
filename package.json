@@ -1,0 +1,38 @@
+{
+  "name": "leadhunter-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LeadHunter AI - SaaS Platform for Business Prospecting",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:backend": "turbo dev --filter=@leadhunter/backend",
+    "dev:web": "turbo dev --filter=@leadhunter/web",
+    "build": "turbo build",
+    "build:backend": "turbo build --filter=@leadhunter/backend",
+    "build:web": "turbo build --filter=@leadhunter/web",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "db:migrate": "turbo db:migrate --filter=@leadhunter/backend",
+    "db:seed": "turbo db:seed --filter=@leadhunter/backend",
+    "db:generate": "turbo db:generate --filter=@leadhunter/backend",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build",
+    "clean": "turbo clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.5.0",
+    "prettier": "^3.3.0",
+    "eslint": "^8.57.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.5.0"
+}
