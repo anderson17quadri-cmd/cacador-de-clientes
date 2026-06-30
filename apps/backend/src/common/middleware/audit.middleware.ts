@@ -9,13 +9,14 @@ export class AuditMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
     const startTime = Date.now();
     const originalEnd = res.end;
+    const prismaService = this.prisma;
 
-    res.end = function (...args: any[]) {
+    res.end = function (this: Response, chunk?: any, encoding?: any, cb?: any): any {
       const responseTime = Date.now() - startTime;
       const userId = (req as any).user?.id;
 
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        prisma.auditLog
+        prismaService.auditLog
           .create({
             data: {
               userId: userId || null,
@@ -23,14 +24,14 @@ export class AuditMiddleware implements NestMiddleware {
               entity: req.baseUrl.split('/')[2] || 'unknown',
               entityId: (req as any).params?.id,
               details: { body: req.body, query: req.query, params: req.params },
-              ip: req.ip,
+              ip: req.ip || '',
               userAgent: req.get('user-agent') || '',
             },
           })
           .catch(() => {});
       }
 
-      return originalEnd.apply(res, args);
+      return originalEnd.call(res, chunk, encoding, cb);
     };
 
     next();

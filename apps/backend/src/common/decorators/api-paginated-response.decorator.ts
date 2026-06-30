@@ -2,8 +2,8 @@ import { applyDecorators, Type } from '@nestjs/common';
 import { ApiExtraModels, ApiOkResponse, getSchemaPath } from '@nestjs/swagger';
 
 export class PaginatedDto<T> {
-  data: T[];
-  meta: {
+  data!: T[];
+  meta!: {
     total: number;
     page: number;
     limit: number;

@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { LeadStatus } from '@prisma/client';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
 
 @Injectable()
@@ -100,7 +99,7 @@ export class LeadsService {
     };
   }
 
-  async updateStatus(id: string, status: LeadStatus) {
+  async updateStatus(id: string, status: string) {
     const company = await this.prisma.company.findUnique({ where: { id } });
     if (!company) throw new NotFoundException('Lead não encontrado');
     // Note: LeadStatus would be stored separately in production.

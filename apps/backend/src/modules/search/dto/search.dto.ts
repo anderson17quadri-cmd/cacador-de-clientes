@@ -15,7 +15,7 @@ export class CreateSearchDto {
 
   @ApiProperty({ example: 'Barbearia' })
   @IsString()
-  category: string;
+  category!: string;
 
   @ApiPropertyOptional({ example: 'São Paulo' })
   @IsOptional()

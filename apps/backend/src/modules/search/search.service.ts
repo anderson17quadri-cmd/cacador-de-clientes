@@ -7,6 +7,7 @@ import { CreateSearchDto } from './dto/search.dto';
 import { SearchFilterDto } from './dto/search-filter.dto';
 import { GooglePlacesService } from '../../services/collectors/google-places.service';
 import { NominatimService } from '../../services/collectors/nominatim.service';
+import { SearchStatus } from '@prisma/client';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
 import { MAX_SEARCH_RADIUS, MAX_CONCURRENT_SEARCHES } from '../../common/constants';
 
@@ -55,7 +56,7 @@ export class SearchService {
     const search = await this.prisma.search.create({
       data: {
         userId,
-        query: dto.query,
+        query: dto.query ?? '',
         location: dto.location || [dto.city, dto.state, dto.country].filter(Boolean).join(', '),
         category: dto.category,
         city: dto.city,
@@ -66,7 +67,7 @@ export class SearchService {
         longitude: lon,
         radius: dto.radius || 5000,
         sources: dto.sources || ['google_places', 'nominatim'],
-        status: 'RUNNING',
+        status: SearchStatus.RUNNING,
         startedAt: new Date(),
       },
     });
@@ -186,7 +187,7 @@ export class SearchService {
     return subject.asObservable();
   }
 
-  async updateProgress(searchId: string, data: Partial<{ progress: number; totalFound: number; totalEnriched: number; status: string }>) {
+  async updateProgress(searchId: string, data: Partial<{ progress: number; totalFound: number; totalEnriched: number; status: SearchStatus }>) {
     await this.prisma.search.update({ where: { id: searchId }, data });
     const subject = this.progressStreams.get(searchId);
     if (subject) {

@@ -1,4 +1,5 @@
-import sanitizeHtml from 'sanitize-html';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sanitizeHtml = require('sanitize-html');
 
 export function sanitizeInput(input: string): string {
   if (!input) return input;
@@ -9,7 +10,7 @@ export function sanitizeInput(input: string): string {
 }
 
 export function sanitizeObject<T extends Record<string, any>>(obj: T): T {
-  const sanitized = { ...obj };
+  const sanitized: Record<string, any> = { ...obj };
   for (const key of Object.keys(sanitized)) {
     if (typeof sanitized[key] === 'string') {
       sanitized[key] = sanitizeInput(sanitized[key]);
@@ -17,7 +18,7 @@ export function sanitizeObject<T extends Record<string, any>>(obj: T): T {
       sanitized[key] = sanitizeObject(sanitized[key]);
     }
   }
-  return sanitized;
+  return sanitized as T;
 }
 
 export function validateEmail(email: string): boolean {

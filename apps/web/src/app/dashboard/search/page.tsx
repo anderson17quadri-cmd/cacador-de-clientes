@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,7 +11,7 @@ import toast from 'react-hot-toast';
 import {
   Search, MapPin, Building2, Target, Play, Loader2,
   Globe, Phone, Star, Instagram, Mail, Filter,
-  AlertCircle, CheckCircle2, Clock, ExternalLink,
+  AlertCircle, CheckCircle2, Clock, ExternalLink, Map,
 } from 'lucide-react';
 import { useSearchStore } from '@/lib/store';
 import api from '@/lib/api';
@@ -23,6 +24,8 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatNumber, getScoreColor, BUSINESS_CATEGORIES, SEARCH_RADIUS_OPTIONS } from '@leadhunter/utils';
 import type { EnrichedCompany } from '@leadhunter/types';
+
+const LeadsMap = dynamic(() => import('@/components/map/leads-map'), { ssr: false });
 
 const searchSchema = z.object({
   category: z.string().min(1, 'Selecione uma categoria'),
@@ -312,6 +315,33 @@ export default function SearchPage() {
                 <CompanyCard key={company.id} company={company} />
               ))}
             </div>
+
+            {results.some((c) => c.latitude && c.longitude) && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <div className="flex items-center gap-2 mt-4 mb-2">
+                  <Map className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Mapa</h3>
+                </div>
+                <LeadsMap
+                  companies={results
+                    .filter((c) => c.latitude && c.longitude)
+                    .map((c) => ({
+                      id: c.id,
+                      name: c.name,
+                      latitude: c.latitude!,
+                      longitude: c.longitude!,
+                      rating: c.rating,
+                      googleMapsLink: c.googleMapsLink,
+                      category: c.category,
+                    }))}
+                  height="400px"
+                />
+              </motion.div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

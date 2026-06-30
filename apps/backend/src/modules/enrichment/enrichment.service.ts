@@ -8,15 +8,27 @@ import { AI_ENRICHMENT_BATCH_SIZE } from '../../common/constants';
 @Injectable()
 export class EnrichmentService {
   private readonly logger = new Logger(EnrichmentService.name);
-  private openai: OpenAI | null = null;
+  private ai: OpenAI | null = null;
+  private aiModel: string = 'gpt-4o-mini';
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
-    const apiKey = this.config.get('openai.apiKey');
-    if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
+    const deepseekKey = this.config.get('DEEPSEEK_API_KEY');
+    const openaiKey = this.config.get('openai.apiKey');
+
+    if (deepseekKey) {
+      this.ai = new OpenAI({
+        apiKey: deepseekKey,
+        baseURL: 'https://api.deepseek.com',
+      });
+      this.aiModel = 'deepseek-chat';
+      this.logger.log('Using DeepSeek API for AI enrichment');
+    } else if (openaiKey) {
+      this.ai = new OpenAI({ apiKey: openaiKey });
+      this.aiModel = 'gpt-4o-mini';
+      this.logger.log('Using OpenAI API for AI enrichment');
     }
   }
 
@@ -93,14 +105,14 @@ export class EnrichmentService {
   }
 
   private async analyzeWithAI(company: Company): Promise<EnrichmentAnalysis> {
-    if (!this.openai) {
+    if (!this.ai) {
       return this.fallbackAnalysis(company);
     }
 
     try {
       const prompt = this.buildAnalysisPrompt(company);
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+      const response = await this.ai.chat.completions.create({
+        model: this.aiModel,
         messages: [
           {
             role: 'system',

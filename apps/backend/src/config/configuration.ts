@@ -24,6 +24,9 @@ export default () => ({
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
   },
+  deepseek: {
+    apiKey: process.env.DEEPSEEK_API_KEY,
+  },
   smtp: {
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || '587', 10),

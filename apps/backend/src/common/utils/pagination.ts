@@ -21,7 +21,7 @@ export function getPaginationParams(params: PaginationParams) {
   const sortBy = params.sortBy || 'createdAt';
   const sortOrder = params.sortOrder || 'desc';
 
-  return { page, limit, skip, sortBy, sortOrder };
+  return { page, limit, skip, sortBy, sortOrder, take: limit };
 }
 
 export function createPaginationMeta(total: number, page: number, limit: number): PaginationMeta {

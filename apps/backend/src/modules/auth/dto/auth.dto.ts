@@ -4,50 +4,50 @@ import { IsEmail, IsString, MinLength, MaxLength, IsOptional } from 'class-valid
 export class RegisterDto {
   @ApiProperty({ example: 'user@email.com' })
   @IsEmail()
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'João Silva' })
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  name: string;
+  name!: string;
 
   @ApiProperty({ example: 'Senha123!' })
   @IsString()
   @MinLength(8)
   @MaxLength(128)
-  password: string;
+  password!: string;
 }
 
 export class LoginDto {
   @ApiProperty({ example: 'user@email.com' })
   @IsEmail()
-  email: string;
+  email!: string;
 
   @ApiProperty({ example: 'Senha123!' })
   @IsString()
-  password: string;
+  password!: string;
 }
 
 export class RefreshTokenDto {
   @ApiProperty()
   @IsString()
-  refreshToken: string;
+  refreshToken!: string;
 }
 
 export class ForgotPasswordDto {
   @ApiProperty()
   @IsEmail()
-  email: string;
+  email!: string;
 }
 
 export class ResetPasswordDto {
   @ApiProperty()
   @IsString()
-  token: string;
+  token!: string;
 
   @ApiProperty()
   @IsString()
   @MinLength(8)
-  password: string;
+  password!: string;
 }

@@ -1,9 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Response } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as ExcelJS from 'exceljs';
+import * as PDFDocumentLib from 'pdfkit';
+const PDFDocument = (PDFDocumentLib as any).default || PDFDocumentLib;
 import { PrismaService } from '../../database/prisma.service';
 import { CreateExportDto } from './dto/export.dto';
 import { ExportFormat } from '@prisma/client';
@@ -88,6 +91,12 @@ export class ExportsService {
       case 'CSV':
         fs.writeFileSync(filePath, this.generateCSV(companies));
         break;
+      case 'EXCEL':
+        await this.generateExcel(filePath, companies);
+        break;
+      case 'PDF':
+        await this.generatePDF(filePath, companies);
+        break;
       default:
         fs.writeFileSync(filePath, JSON.stringify(companies, null, 2));
     }
@@ -162,5 +171,117 @@ export class ExportsService {
       headers.join(','),
       ...rows.map((r) => r.map(escape).join(',')),
     ].join('\n');
+  }
+
+  private async generateExcel(filePath: string, companies: any[]): Promise<void> {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Leads');
+
+    sheet.columns = [
+      { header: 'Nome', key: 'name', width: 30 },
+      { header: 'Categoria', key: 'category', width: 18 },
+      { header: 'Telefone', key: 'phone', width: 18 },
+      { header: 'Email', key: 'email', width: 28 },
+      { header: 'Website', key: 'website', width: 28 },
+      { header: 'Instagram', key: 'instagram', width: 22 },
+      { header: 'Facebook', key: 'facebook', width: 22 },
+      { header: 'Cidade', key: 'city', width: 20 },
+      { header: 'Avaliação', key: 'rating', width: 12 },
+      { header: 'Total Avaliações', key: 'totalRatings', width: 16 },
+      { header: 'Score IA', key: 'qualityScore', width: 12 },
+      { header: 'Nível Presença', key: 'presenceLevel', width: 16 },
+      { header: 'Link Maps', key: 'googleMapsLink', width: 40 },
+    ];
+
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF7C3AED' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.height = 24;
+
+    for (const c of companies) {
+      sheet.addRow({
+        name: c.name || '',
+        category: c.category || '',
+        phone: c.phone || '',
+        email: c.email || '',
+        website: c.website || '',
+        instagram: c.instagram || '',
+        facebook: c.facebook || '',
+        city: [c.city, c.state].filter(Boolean).join(', ') || '',
+        rating: c.rating ?? '',
+        totalRatings: c.totalRatings ?? '',
+        qualityScore: c.enrichedData?.qualityScore ?? '',
+        presenceLevel: c.enrichedData?.presenceLevel ?? '',
+        googleMapsLink: c.googleMapsLink || '',
+      });
+    }
+
+    await workbook.xlsx.writeFile(filePath);
+  }
+
+  private async generatePDF(filePath: string, companies: any[]): Promise<void> {
+    const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
+    const writeStream = fs.createWriteStream(filePath);
+    doc.pipe(writeStream);
+
+    doc.fontSize(18).font('Helvetica-Bold').text('LeadHunter AI - Leads Exportados', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(10).font('Helvetica').fillColor('#6b7280').text(
+      `Exportado em: ${new Date().toLocaleString('pt-BR')}  |  Total: ${companies.length} empresas`,
+      { align: 'center' },
+    );
+    doc.moveDown(1);
+
+    const colX = [50, 220, 320, 380, 440, 500];
+    const drawTableHeader = (y: number) => {
+      doc.rect(50, y - 4, 500, 20).fill('#7C3AED');
+      doc.fillColor('#FFFFFF').fontSize(8).font('Helvetica-Bold');
+      doc.text('Nome', colX[0]!, y, { width: 160 });
+      doc.text('Categoria', colX[1]!, y, { width: 90 });
+      doc.text('Telefone', colX[2]!, y, { width: 55 });
+      doc.text('Score IA', colX[3]!, y, { width: 50 });
+      doc.text('Site/IG', colX[4]!, y, { width: 50 });
+      doc.fillColor('#000000').font('Helvetica').fontSize(7);
+    };
+
+    let y = doc.y;
+    drawTableHeader(y);
+    y += 18;
+
+    for (const c of companies) {
+      if (y > 750) {
+        doc.addPage();
+        y = 50;
+        drawTableHeader(y);
+        y += 18;
+      }
+
+      const name = (c.name || 'Sem nome').substring(0, 28);
+      const category = (c.category || '').substring(0, 15);
+      const phone = (c.phone || '').substring(0, 15);
+      const score = c.enrichedData?.qualityScore != null ? String(c.enrichedData.qualityScore) : '-';
+      const hasSite = c.hasWebsite ? 'S' : 'N';
+      const hasIG = c.hasInstagram ? 'S' : 'N';
+
+      doc.fontSize(8).font('Helvetica-Bold').text(name, colX[0]!, y, { width: 160 });
+      doc.fontSize(7).font('Helvetica').text(category, colX[1]!, y, { width: 90 });
+      doc.text(phone, colX[2]!, y, { width: 55 });
+      doc.text(score, colX[3]!, y, { width: 50 });
+      doc.text(`Site:${hasSite} IG:${hasIG}`, colX[4]!, y, { width: 55 });
+
+      y += 14;
+    }
+
+    doc.end();
+
+    return new Promise<void>((resolve, reject) => {
+      writeStream.on('finish', () => resolve());
+      writeStream.on('error', (err) => reject(err));
+    });
   }
 }

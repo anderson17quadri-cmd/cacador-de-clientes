@@ -35,7 +35,7 @@ export class GooglePlacesService {
               type: type as any,
               key: this.apiKey,
               pagetoken: pageToken,
-              language: 'pt-BR',
+              language: 'pt-BR' as any,
             },
           });
 
@@ -71,7 +71,7 @@ export class GooglePlacesService {
             'website', 'opening_hours', 'rating', 'user_ratings_total',
             'photos', 'geometry', 'types', 'business_status',
           ],
-          language: 'pt-BR',
+          language: 'pt-BR' as any,
         },
       });
 
