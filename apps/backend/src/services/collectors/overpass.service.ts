@@ -82,9 +82,17 @@ export class OverpassService {
     if (!tags) return null;
 
     const radiusDeg = radius / 111000;
-    const bbox = `${lon - radiusDeg},${lat - radiusDeg},${lon + radiusDeg},${lat + radiusDeg}`;
+    const bbox = `${lat - radiusDeg},${lon - radiusDeg},${lat + radiusDeg},${lon + radiusDeg}`;
 
-    return tags.map((tag) => `node["${tag}"="${lower === tag.split('=')[1] ? lower : tag.split('=')[1] || '*'}" ](${bbox});out body 50;`).join('\n');
+    const parts = tags.map((tag) => {
+      const [key, value] = tag.split('=');
+      if (value === '*') {
+        return `nwr["${key}"](${bbox});`;
+      }
+      return `nwr["${key}"="${value}"](${bbox});`;
+    });
+
+    return `(${parts.join('')});out center body 80;`;
   }
 
   private getCategoryTags(category: string): string[] | null {

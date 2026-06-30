@@ -18,6 +18,6 @@ import { CompaniesModule } from '../companies/companies.module';
   ],
   controllers: [SearchController],
   providers: [SearchService, GooglePlacesService, NominatimService, OverpassService, FoursquareService, YelpService, WebsiteEnricherService],
-  exports: [SearchService],
+  exports: [SearchService, GooglePlacesService, NominatimService, OverpassService, FoursquareService, YelpService, WebsiteEnricherService],
 })
 export class SearchModule {}
