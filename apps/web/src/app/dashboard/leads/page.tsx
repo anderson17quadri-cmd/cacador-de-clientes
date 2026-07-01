@@ -275,11 +275,32 @@ export default function LeadsPage() {
                             )}
                           </div>
 
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {lead.hasWebsite && <Badge variant="secondary" className="text-[10px]"><Globe className="h-3 w-3 mr-0.5" />Site</Badge>}
-                            {lead.hasInstagram && <Badge variant="secondary" className="text-[10px]"><Instagram className="h-3 w-3 mr-0.5" />IG</Badge>}
-                            {lead.hasWhatsapp && <Badge variant="success" className="text-[10px]"><Phone className="h-3 w-3 mr-0.5" />WhatsApp</Badge>}
-                            {lead.hasEmail && <Badge variant="secondary" className="text-[10px]"><Mail className="h-3 w-3 mr-0.5" />Email</Badge>}
+                          <div className="flex flex-wrap gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
+                            {lead.phone && (
+                              <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-[11px] font-medium px-2 py-1">
+                                <Phone className="h-3 w-3" />WhatsApp
+                              </a>
+                            )}
+                            {lead.phone && (
+                              <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium px-2 py-1">
+                                <Phone className="h-3 w-3" />Ligar
+                              </a>
+                            )}
+                            {lead.instagram && (
+                              <a href={`https://instagram.com/${lead.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-pink-600 hover:bg-pink-700 text-white text-[11px] font-medium px-2 py-1">
+                                <Instagram className="h-3 w-3" />Instagram
+                              </a>
+                            )}
+                            {lead.website && (
+                              <a href={lead.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-gray-600 hover:bg-gray-700 text-white text-[11px] font-medium px-2 py-1">
+                                <Globe className="h-3 w-3" />Site
+                              </a>
+                            )}
+                            {lead.email && (
+                              <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 rounded-md bg-gray-600 hover:bg-gray-700 text-white text-[11px] font-medium px-2 py-1">
+                                <Mail className="h-3 w-3" />Email
+                              </a>
+                            )}
                           </div>
                         </div>
                       </div>
