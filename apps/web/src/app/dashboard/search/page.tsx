@@ -48,7 +48,7 @@ export default function SearchPage() {
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<SearchForm>({
     resolver: zodResolver(searchSchema),
-    defaultValues: { category: '', city: '', state: '', country: 'Brasil', radius: 5000 },
+    defaultValues: { category: '', city: '', state: '', country: 'Portugal', radius: 5000 },
   });
 
   const selectedCategory = watch('category');
@@ -90,7 +90,7 @@ export default function SearchPage() {
     clearSearch();
 
     try {
-      const res = await api.post('/search', data);
+      const res = await api.post('/search', { ...data, sources: ['nominatim', 'overpass', 'google_places'] });
       const search = res.data.data;
       setCurrentSearch(search);
       toast.success('Pesquisa iniciada!');
@@ -175,11 +175,6 @@ export default function SearchPage() {
                   Cidade
                 </label>
                 <Input {...register('city')} placeholder="Ex: São Paulo" disabled={loading} />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-1.5">Estado (UF)</label>
-                <Input {...register('state')} placeholder="Ex: SP" maxLength={2} disabled={loading} />
               </div>
 
               <div>

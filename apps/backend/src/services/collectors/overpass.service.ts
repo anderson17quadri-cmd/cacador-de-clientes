@@ -92,28 +92,51 @@ export class OverpassService {
       return `nwr["${key}"="${value}"](${bbox});`;
     });
 
-    return `(${parts.join('')});out center body 80;`;
+    return `(${parts.join('')});out center body 200;`;
   }
 
   private getCategoryTags(category: string): string[] | null {
     const mapping: Record<string, string[]> = {
       barbearia: ['shop=hairdresser', 'shop=barber'],
-      dentista: ['amenity=dentist'],
-      restaurante: ['amenity=restaurant', 'amenity=fast_food', 'amenity=cafe'],
+      cabeleireiro: ['shop=hairdresser'],
+      estetica: ['shop=beauty', 'shop=cosmetics'],
+      tatuador: ['shop=tattoo'],
+      spa: ['leisure=spa', 'shop=massage', 'amenity=spa'],
+      restaurante: ['amenity=restaurant', 'amenity=fast_food'],
+      cafe: ['amenity=cafe'],
+      bar: ['amenity=bar', 'amenity=pub'],
       padaria: ['shop=bakery'],
-      hotel: ['tourism=hotel', 'tourism=guest_house', 'tourism=motel'],
-      advogado: ['office=lawyer'],
-      academia: ['leisure=fitness_centre', 'amenity=gym'],
-      veterinario: ['amenity=veterinary'],
-      clinica: ['amenity=hospital', 'amenity=clinic', 'amenity=doctors'],
-      farmacia: ['amenity=pharmacy'],
-      loja: ['shop=*'],
-      construtora: ['office=construction_company', 'craft=builder'],
-      imobiliaria: ['office=estate_agent'],
-      mecanica: ['shop=car_repair'],
+      pastelaria: ['shop=pastry', 'shop=confectionery'],
+      talho: ['shop=butcher'],
+      peixaria: ['shop=seafood'],
       supermercado: ['shop=supermarket'],
+      minimercado: ['shop=convenience', 'shop=grocery'],
+      hotel: ['tourism=hotel', 'tourism=motel'],
+      alojamento: ['tourism=guest_house', 'tourism=apartment', 'tourism=hostel'],
+      dentista: ['amenity=dentist'],
+      clinica: ['amenity=clinic', 'healthcare=clinic'],
+      medico: ['amenity=doctors', 'healthcare=doctor'],
+      farmacia: ['amenity=pharmacy'],
+      veterinario: ['amenity=veterinary'],
+      academia: ['leisure=fitness_centre', 'leisure=sports_centre'],
+      advogado: ['office=lawyer'],
+      contabilidade: ['office=accountant', 'office=tax_advisor'],
+      imobiliaria: ['office=estate_agent'],
+      construtora: ['office=construction_company', 'craft=builder'],
+      mecanica: ['shop=car_repair', 'craft=car_repair'],
+      stand_auto: ['shop=car'],
+      florista: ['shop=florist'],
+      otica: ['shop=optician'],
+      sapataria: ['shop=shoes'],
+      loja_roupa: ['shop=clothes'],
+      joalharia: ['shop=jewelry'],
       pet_shop: ['shop=pet'],
       escola: ['amenity=school'],
+      infantario: ['amenity=kindergarten', 'amenity=childcare'],
+      lavandaria: ['shop=laundry', 'shop=dry_cleaning'],
+      papelaria: ['shop=stationery'],
+      ferragens: ['shop=hardware', 'shop=doityourself'],
+      loja: ['shop=general', 'shop=variety_store'],
     };
 
     return mapping[category] || null;
