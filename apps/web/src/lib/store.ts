@@ -39,7 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 interface SearchState {
   currentSearch: Search | null;
   searchProgress: { progress: number; totalFound: number; totalEnriched: number; status: string } | null;
-  searchLogs: Array<{ message: string; level: string; timestamp: string }>;
+  searchLogs: Array<{ message: string; level: string; timestamp: string; source?: string }>;
   setCurrentSearch: (search: Search | null) => void;
   setSearchProgress: (progress: any) => void;
   addSearchLog: (log: any) => void;
