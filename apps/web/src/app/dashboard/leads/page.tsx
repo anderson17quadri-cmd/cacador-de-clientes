@@ -276,8 +276,8 @@ export default function LeadsPage() {
                           </div>
 
                           <div className="flex flex-wrap gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
-                            {lead.phone && (
-                              <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-[11px] font-medium px-2 py-1">
+                            {(lead.whatsapp || lead.phone) && (
+                              <a href={`https://wa.me/${(lead.whatsapp || lead.phone)!.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-[11px] font-medium px-2 py-1">
                                 <Phone className="h-3 w-3" />WhatsApp
                               </a>
                             )}
