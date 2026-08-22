@@ -7,7 +7,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ParseUUIDPipe } from '../../common/pipes/parse-objectid.pipe';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../../common/enums';
 
 @ApiTags('Users')
 @ApiBearerAuth()

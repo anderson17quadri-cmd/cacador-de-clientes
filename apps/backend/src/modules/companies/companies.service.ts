@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CompanyFilterDto } from './dto/company-filter.dto';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
+import { deserializeCompany, stringifyJson } from '../../common/utils/json-fields';
 
 @Injectable()
 export class CompaniesService {
@@ -17,13 +18,13 @@ export class CompaniesService {
 
     if (filters.search) {
       where.OR = [
-        { name: { contains: filters.search, mode: 'insensitive' } },
-        { description: { contains: filters.search, mode: 'insensitive' } },
-        { category: { contains: filters.search, mode: 'insensitive' } },
+        { name: { contains: filters.search } },
+        { description: { contains: filters.search } },
+        { category: { contains: filters.search } },
       ];
     }
     if (filters.category) where.category = filters.category;
-    if (filters.city) where.city = { contains: filters.city, mode: 'insensitive' };
+    if (filters.city) where.city = { contains: filters.city };
     if (filters.state) where.state = filters.state;
     if (filters.country) where.country = filters.country;
     if (filters.minRating !== undefined) where.rating = { gte: filters.minRating };
@@ -60,7 +61,7 @@ export class CompaniesService {
       this.prisma.company.count({ where }),
     ]);
 
-    return { data, meta: createPaginationMeta(total, page, limit) };
+    return { data: data.map(deserializeCompany), meta: createPaginationMeta(total, page, limit) };
   }
 
   async findById(id: string) {
@@ -69,7 +70,7 @@ export class CompaniesService {
       include: { enrichedData: true, search: { select: { location: true, category: true } } },
     });
     if (!company) throw new NotFoundException('Empresa não encontrada');
-    return company;
+    return deserializeCompany(company);
   }
 
   async getAnalysis(id: string) {
@@ -132,10 +133,10 @@ export class CompaniesService {
             latitude: company.latitude || null,
             longitude: company.longitude || null,
             googleMapsLink: company.googleMapsLink || null,
-            openingHours: company.openingHours || null,
+            openingHours: stringifyJson(company.openingHours),
             rating: company.rating || null,
             totalRatings: company.totalRatings || null,
-            photos: company.photos || [],
+            photos: stringifyJson(company.photos || []) as string,
             isOpen: company.isOpen || null,
             hasWebsite: !!company.website,
             hasInstagram: !!company.instagram,
@@ -145,13 +146,13 @@ export class CompaniesService {
             source,
             sourceId: sourceId || null,
             sourceUrl: company.sourceUrl || null,
-            rawData: company.rawData || null,
+            rawData: stringifyJson(company.rawData),
             searchId,
           },
         });
-        results.push(created);
+        results.push(deserializeCompany(created));
       } else {
-        results.push(existing);
+        results.push(deserializeCompany(existing));
       }
     }
 
@@ -187,11 +188,12 @@ export class CompaniesService {
   }
 
   async getRecentBySearchId(searchId: string, limit = 50) {
-    return this.prisma.company.findMany({
+    const companies = await this.prisma.company.findMany({
       where: { searchId },
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: { enrichedData: true },
     });
+    return companies.map(deserializeCompany);
   }
 }

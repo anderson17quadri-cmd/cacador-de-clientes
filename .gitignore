@@ -3,6 +3,9 @@ dist/
 .next/
 .expo/
 build/
+!apps/desktop/build/
+apps/desktop/resources/
+apps/desktop/release/
 *.log
 .env
 .env.local
@@ -11,8 +14,8 @@ build/
 coverage/
 .turbo/
 *.tsbuildinfo
-prisma/migrations/
-!.prisma/migrations/migration_lock.toml
+*.db
+*.db-journal
 supabase/
 firebase-debug.log
 android/app/google-services.json

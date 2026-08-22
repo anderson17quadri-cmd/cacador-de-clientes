@@ -7,8 +7,12 @@ import { ConfigService } from '@nestjs/config';
 export class GithubStrategy extends PassportStrategy(Strategy, 'github') {
   constructor(config: ConfigService) {
     super({
-      clientID: config.get('github.clientId'),
-      clientSecret: config.get('github.clientSecret'),
+      // passport-oauth2 throws at construction if these are empty, so we
+      // fall back to placeholders when GitHub OAuth isn't configured -
+      // the /auth/github routes simply fail at GitHub's end instead of
+      // crashing the whole app on boot.
+      clientID: config.get('github.clientId') || 'not-configured',
+      clientSecret: config.get('github.clientSecret') || 'not-configured',
       callbackURL: `${config.get('API_URL', 'http://localhost:3001')}/api/auth/github/callback`,
       scope: ['user:email'],
     });

@@ -1,6 +1,7 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
+import { deserializeCompany } from '../../common/utils/json-fields';
 
 @Injectable()
 export class FavoritesService {
@@ -22,7 +23,10 @@ export class FavoritesService {
       this.prisma.favorite.count({ where: { userId } }),
     ]);
 
-    return { data, meta: createPaginationMeta(total, page, take) };
+    return {
+      data: data.map((f) => ({ ...f, company: deserializeCompany(f.company) })),
+      meta: createPaginationMeta(total, page, take),
+    };
   }
 
   async add(userId: string, companyId: string) {
@@ -34,10 +38,11 @@ export class FavoritesService {
     });
     if (existing) throw new ConflictException('Empresa já está nos favoritos');
 
-    return this.prisma.favorite.create({
+    const favorite = await this.prisma.favorite.create({
       data: { userId, companyId },
       include: { company: true },
     });
+    return { ...favorite, company: deserializeCompany(favorite.company) };
   }
 
   async remove(userId: string, companyId: string) {

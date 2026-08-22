@@ -16,6 +16,13 @@ export class AuditMiddleware implements NestMiddleware {
       const userId = (req as any).user?.id;
 
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        let details: string | null = null;
+        try {
+          details = JSON.stringify({ body: req.body, query: req.query, params: req.params });
+        } catch {
+          // ignore unstringifiable payloads (e.g. circular refs)
+        }
+
         prismaService.auditLog
           .create({
             data: {
@@ -23,7 +30,7 @@ export class AuditMiddleware implements NestMiddleware {
               action: req.method,
               entity: req.baseUrl.split('/')[2] || 'unknown',
               entityId: (req as any).params?.id,
-              details: { body: req.body, query: req.query, params: req.params },
+              details,
               ip: req.ip || '',
               userAgent: req.get('user-agent') || '',
             },

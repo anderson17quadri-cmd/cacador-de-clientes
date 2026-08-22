@@ -1,9 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
-import { PresenceLevel, Company, EnrichedData } from '@prisma/client';
+import { Company, EnrichedData } from '@prisma/client';
+import { PresenceLevel } from '../../common/enums';
+import { deserializeCompany } from '../../common/utils/json-fields';
 import OpenAI from 'openai';
 import { AI_ENRICHMENT_BATCH_SIZE } from '../../common/constants';
+
+type EnrichableCompany = Omit<Company, 'photos' | 'openingHours' | 'rawData'> & {
+  photos: string[];
+  openingHours: Record<string, any> | null;
+  rawData: any;
+};
 
 @Injectable()
 export class EnrichmentService {
@@ -38,7 +46,7 @@ export class EnrichmentService {
     });
     if (existing) return existing;
 
-    const analysis = await this.analyzeWithAI(company);
+    const analysis = await this.analyzeWithAI(deserializeCompany(company));
 
     return this.prisma.enrichedData.create({
       data: {
@@ -104,7 +112,7 @@ export class EnrichmentService {
     };
   }
 
-  private async analyzeWithAI(company: Company): Promise<EnrichmentAnalysis> {
+  private async analyzeWithAI(company: EnrichableCompany): Promise<EnrichmentAnalysis> {
     if (!this.ai) {
       return this.fallbackAnalysis(company);
     }
@@ -134,7 +142,7 @@ export class EnrichmentService {
     }
   }
 
-  private buildAnalysisPrompt(company: Company): string {
+  private buildAnalysisPrompt(company: EnrichableCompany): string {
     return `
 Analise esta empresa com APENAS dados públicos abaixo:
 Nome: ${company.name}
@@ -167,7 +175,7 @@ Retorne JSON com:
 }`;
   }
 
-  private normalizeAnalysis(parsed: any, company: Company): EnrichmentAnalysis {
+  private normalizeAnalysis(parsed: any, company: EnrichableCompany): EnrichmentAnalysis {
     return {
       qualityScore: Math.min(100, Math.max(0, parsed.qualityScore || 50)),
       presenceLevel: (parsed.presenceLevel as PresenceLevel) || PresenceLevel.LOW,
@@ -185,7 +193,7 @@ Retorne JSON com:
     };
   }
 
-  private fallbackAnalysis(company: Company): EnrichmentAnalysis {
+  private fallbackAnalysis(company: EnrichableCompany): EnrichmentAnalysis {
     let score = 0;
     if (company.hasWebsite) score += 15;
     if (company.hasInstagram) score += 15;
@@ -224,7 +232,7 @@ Retorne JSON com:
     };
   }
 
-  private buildFallbackText(company: Company, score: number): string {
+  private buildFallbackText(company: EnrichableCompany, score: number): string {
     const points: string[] = [];
     if (!company.hasWebsite) points.push('não possui website');
     if (!company.hasInstagram) points.push('não tem Instagram');

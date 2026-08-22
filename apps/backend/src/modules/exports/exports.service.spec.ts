@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { ExportsService } from './exports.service';
 import { PrismaService } from '../../database/prisma.service';
-import { getQueueToken } from '@nestjs/bullmq';
 
 describe('ExportsService', () => {
   let service: ExportsService;
@@ -20,16 +20,14 @@ describe('ExportsService', () => {
     },
   };
 
-  const mockQueue = {
-    add: jest.fn(),
-  };
+  const mockConfig = { get: jest.fn().mockReturnValue('.') };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExportsService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: getQueueToken('exports'), useValue: mockQueue },
+        { provide: ConfigService, useValue: mockConfig },
       ],
     }).compile();
 
@@ -153,24 +151,21 @@ describe('ExportsService', () => {
   });
 
   describe('create', () => {
-    it('should create export record and enqueue job', async () => {
+    it('should create export record', async () => {
       mockPrisma.dataExport.create.mockResolvedValue({
         id: 'export-1',
         userId: 'user-1',
         searchId: null,
         format: 'CSV',
         fileName: 'export-user-1-123',
-        filters: {},
+        filters: '{}',
         status: 'processing',
       });
+      mockPrisma.dataExport.findUnique.mockResolvedValue(null);
 
       const result = await service.create('user-1', { format: 'CSV' as any });
 
       expect(mockPrisma.dataExport.create).toHaveBeenCalled();
-      expect(mockQueue.add).toHaveBeenCalledWith('process-export', {
-        exportId: 'export-1',
-        userId: 'user-1',
-      });
       expect(result.format).toBe('CSV');
       expect(result.status).toBe('processing');
     });

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
+import { parseJson, stringifyJson } from '../../common/utils/json-fields';
 
 @Injectable()
 export class NotificationsService {
@@ -21,7 +22,10 @@ export class NotificationsService {
       this.prisma.notification.count({ where }),
     ]);
 
-    return { data, meta: createPaginationMeta(total, page, take) };
+    return {
+      data: data.map((n) => ({ ...n, data: parseJson(n.data, null) })),
+      meta: createPaginationMeta(total, page, take),
+    };
   }
 
   async markAsRead(id: string) {
@@ -43,7 +47,7 @@ export class NotificationsService {
 
   async create(userId: string, title: string, message: string, type = 'info', data?: any) {
     return this.prisma.notification.create({
-      data: { userId, title, message, type, data },
+      data: { userId, title, message, type, data: stringifyJson(data) },
     });
   }
 }

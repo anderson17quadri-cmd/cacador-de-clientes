@@ -1,13 +1,12 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { Observable, Subject } from 'rxjs';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateSearchDto } from './dto/search.dto';
 import { SearchFilterDto } from './dto/search-filter.dto';
 import { GooglePlacesService } from '../../services/collectors/google-places.service';
 import { NominatimService } from '../../services/collectors/nominatim.service';
-import { SearchStatus } from '@prisma/client';
+import { SearchStatus } from '../../common/enums';
+import { deserializeSearch, deserializeCompany, stringifyJson } from '../../common/utils/json-fields';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
 import { MAX_SEARCH_RADIUS, MAX_CONCURRENT_SEARCHES } from '../../common/constants';
 
@@ -18,7 +17,6 @@ export class SearchService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue('search') private readonly searchQueue: Queue,
     private readonly googlePlaces: GooglePlacesService,
     private readonly nominatim: NominatimService,
   ) {}
@@ -53,6 +51,8 @@ export class SearchService {
       throw new BadRequestException('Não foi possível determinar as coordenadas da localização');
     }
 
+    const sources = dto.sources || ['google_places', 'nominatim'];
+
     const search = await this.prisma.search.create({
       data: {
         userId,
@@ -66,7 +66,7 @@ export class SearchService {
         latitude: lat,
         longitude: lon,
         radius: dto.radius || 5000,
-        sources: dto.sources || ['google_places', 'nominatim'],
+        sources: stringifyJson(sources) as string,
         status: SearchStatus.RUNNING,
         startedAt: new Date(),
       },
@@ -74,17 +74,7 @@ export class SearchService {
 
     this.progressStreams.set(search.id, new Subject());
 
-    await this.searchQueue.add('execute-search', {
-      searchId: search.id,
-      userId,
-      latitude: lat,
-      longitude: lon,
-      category: dto.category,
-      radius: dto.radius || 5000,
-      sources: dto.sources || ['google_places', 'nominatim'],
-    });
-
-    return search;
+    return deserializeSearch(search);
   }
 
   async findAll(userId: string, filters: SearchFilterDto) {
@@ -95,8 +85,8 @@ export class SearchService {
 
     const where: any = { userId };
     if (filters.status) where.status = filters.status;
-    if (filters.category) where.category = { contains: filters.category, mode: 'insensitive' };
-    if (filters.city) where.city = { contains: filters.city, mode: 'insensitive' };
+    if (filters.category) where.category = { contains: filters.category };
+    if (filters.city) where.city = { contains: filters.city };
     if (filters.country) where.country = filters.country;
 
     const [data, total] = await Promise.all([
@@ -110,7 +100,7 @@ export class SearchService {
       this.prisma.search.count({ where }),
     ]);
 
-    return { data, meta: createPaginationMeta(total, page, limit) };
+    return { data: data.map(deserializeSearch), meta: createPaginationMeta(total, page, limit) };
   }
 
   async findById(id: string) {
@@ -122,7 +112,7 @@ export class SearchService {
       },
     });
     if (!search) throw new NotFoundException('Pesquisa não encontrada');
-    return search;
+    return deserializeSearch(search);
   }
 
   async getProgress(id: string) {
@@ -174,7 +164,7 @@ export class SearchService {
       this.prisma.company.count({ where: { searchId: id } }),
     ]);
 
-    return { data, meta: createPaginationMeta(total, page, take) };
+    return { data: data.map(deserializeCompany), meta: createPaginationMeta(total, page, take) };
   }
 
   streamProgress(id: string): Observable<any> {

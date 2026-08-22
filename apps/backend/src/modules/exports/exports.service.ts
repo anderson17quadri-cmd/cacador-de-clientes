@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -9,16 +8,23 @@ import * as PDFDocumentLib from 'pdfkit';
 const PDFDocument = (PDFDocumentLib as any).default || PDFDocumentLib;
 import { PrismaService } from '../../database/prisma.service';
 import { CreateExportDto } from './dto/export.dto';
-import { ExportFormat } from '@prisma/client';
+import { ExportFormat } from '../../common/enums';
+import { deserializeCompany, stringifyJson } from '../../common/utils/json-fields';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
 import { EXPORT_MAX_ROWS } from '../../common/constants';
 
 @Injectable()
 export class ExportsService {
+  private readonly logger = new Logger(ExportsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue('exports') private readonly exportQueue: Queue,
+    private readonly config: ConfigService,
   ) {}
+
+  private exportsDir(): string {
+    return path.join(this.config.get<string>('dataDir', '.'), 'uploads', 'exports');
+  }
 
   async create(userId: string, dto: CreateExportDto) {
     const fileName = `export-${userId}-${Date.now()}`;
@@ -30,12 +36,15 @@ export class ExportsService {
         searchId: dto.searchId,
         format,
         fileName,
-        filters: dto.filters || {},
+        filters: stringifyJson(dto.filters || {}),
         status: 'processing',
       },
     });
 
-    await this.exportQueue.add('process-export', { exportId: exportRecord.id, userId });
+    this.processExport(exportRecord.id, userId).catch((error: any) => {
+      this.logger.error(`Exportação ${exportRecord.id} falhou: ${error.message}`);
+      this.failExport(exportRecord.id, error.message);
+    });
 
     return exportRecord;
   }
@@ -71,14 +80,16 @@ export class ExportsService {
       where.search = { userId };
     }
 
-    const companies = await this.prisma.company.findMany({
-      where,
-      take: EXPORT_MAX_ROWS,
-      orderBy: { createdAt: 'desc' },
-      include: { enrichedData: true },
-    });
+    const companies = (
+      await this.prisma.company.findMany({
+        where,
+        take: EXPORT_MAX_ROWS,
+        orderBy: { createdAt: 'desc' },
+        include: { enrichedData: true },
+      })
+    ).map(deserializeCompany);
 
-    const exportDir = path.join(process.cwd(), 'uploads', 'exports');
+    const exportDir = this.exportsDir();
     if (!fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
 
     const ext = record.format.toLowerCase();
@@ -126,7 +137,7 @@ export class ExportsService {
     if (!record || !record.fileUrl) throw new NotFoundException('Arquivo não encontrado');
 
     const ext = record.format.toLowerCase();
-    const filePath = path.join(process.cwd(), 'uploads', 'exports', `${record.fileName}.${ext}`);
+    const filePath = path.join(this.exportsDir(), `${record.fileName}.${ext}`);
 
     if (!fs.existsSync(filePath)) throw new NotFoundException('Arquivo não encontrado no servidor');
 

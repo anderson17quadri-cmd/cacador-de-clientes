@@ -3,52 +3,14 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  USER
-  ADMIN
-  SUPER_ADMIN
-}
-
-enum PlanType {
-  FREE
-  PRO
-  ENTERPRISE
-}
-
-enum SearchStatus {
-  PENDING
-  RUNNING
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-enum LeadStatus {
-  NEW
-  CONTACTED
-  QUALIFIED
-  CONVERTED
-  REJECTED
-}
-
-enum PresenceLevel {
-  VERY_LOW
-  LOW
-  MEDIUM
-  HIGH
-  EXCELLENT
-}
-
-enum ExportFormat {
-  CSV
-  EXCEL
-  PDF
-  JSON
-}
+// SQLite has no native enum type, so UserRole/PlanType/SearchStatus/
+// PresenceLevel/ExportFormat are plain Strings below. The valid values are
+// defined as TS const objects in src/common/enums.ts (used in place of the
+// old `@prisma/client` enum imports).
 
 model User {
   id            String    @id @default(uuid())
@@ -56,8 +18,8 @@ model User {
   password      String?
   name          String
   avatarUrl     String?
-  role          UserRole  @default(USER)
-  plan          PlanType  @default(FREE)
+  role          String    @default("USER")
+  plan          String    @default("FREE")
   googleId      String?   @unique
   githubId      String?   @unique
   refreshToken  String?
@@ -93,13 +55,13 @@ model Search {
   latitude     Float?
   longitude    Float?
   radius       Int          @default(5000)
-  status       SearchStatus @default(PENDING)
+  status       String       @default("PENDING")
   totalFound   Int          @default(0)
   totalEnriched Int         @default(0)
   progress     Float        @default(0)
   estimatedTime Int?
   error        String?
-  sources      String[]
+  sources      String
   startedAt    DateTime?
   completedAt  DateTime?
   createdAt    DateTime     @default(now())
@@ -124,7 +86,7 @@ model SearchJob {
   status     String   @default("pending")
   progress   Float    @default(0)
   error      String?
-  metadata   Json?
+  metadata   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -173,10 +135,10 @@ model Company {
   latitude        Float?
   longitude       Float?
   googleMapsLink  String?
-  openingHours    Json?
+  openingHours    String?
   rating          Float?
   totalRatings    Int?
-  photos          String[]
+  photos          String    @default("[]")
   isOpen          Boolean?
   hasWebsite      Boolean   @default(false)
   hasInstagram    Boolean   @default(false)
@@ -186,7 +148,7 @@ model Company {
   source          String
   sourceId        String?
   sourceUrl       String?
-  rawData         Json?
+  rawData         String?
 
   searchId        String
   enrichedData    EnrichedData?
@@ -213,7 +175,7 @@ model EnrichedData {
   id                String        @id @default(uuid())
   companyId         String        @unique
   qualityScore      Int?
-  presenceLevel     PresenceLevel?
+  presenceLevel     String?
   hasVisualIdentity Boolean       @default(false)
   hasModernWebsite  Boolean       @default(false)
   instagramActive   Boolean       @default(false)
@@ -252,11 +214,11 @@ model DataExport {
   id        String       @id @default(uuid())
   userId    String
   searchId  String?
-  format    ExportFormat
+  format    String
   fileName  String
   fileSize  Int?
   fileUrl   String?
-  filters   Json?
+  filters   String?
   status    String       @default("processing")
   createdAt DateTime     @default(now())
   completedAt DateTime?
@@ -274,7 +236,7 @@ model AuditLog {
   action    String
   entity    String
   entityId  String?
-  details   Json?
+  details   String?
   ip        String?
   userAgent String?
   createdAt DateTime @default(now())
@@ -296,7 +258,7 @@ model Notification {
   message   String
   type      String
   read      Boolean  @default(false)
-  data      Json?
+  data      String?
   createdAt DateTime @default(now())
 
   @@index([userId, read])
@@ -320,7 +282,7 @@ model RateLimit {
 model CacheEntry {
   id        String   @id @default(uuid())
   key       String   @unique
-  value     Json
+  value     String
   ttl       Int?
   createdAt DateTime @default(now())
 

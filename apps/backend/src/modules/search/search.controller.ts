@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Param, Query, Body, UseGuards, Sse, MessageEvent } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body, UseGuards, Sse, MessageEvent, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Observable } from 'rxjs';
 import { SearchService } from './search.service';
+import { SearchProcessor } from './search.processor';
 import { CreateSearchDto } from './dto/search.dto';
 import { SearchFilterDto } from './dto/search-filter.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -13,12 +14,31 @@ import { ParseUUIDPipe } from '../../common/pipes/parse-objectid.pipe';
 @UseGuards(JwtAuthGuard)
 @Controller('search')
 export class SearchController {
-  constructor(private readonly searchService: SearchService) {}
+  private readonly logger = new Logger(SearchController.name);
+
+  constructor(
+    private readonly searchService: SearchService,
+    private readonly searchProcessor: SearchProcessor,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Iniciar nova pesquisa' })
   async create(@CurrentUser('id') userId: string, @Body() dto: CreateSearchDto) {
-    return this.searchService.create(userId, dto);
+    const search = await this.searchService.create(userId, dto);
+
+    this.searchProcessor
+      .run({
+        searchId: search.id,
+        userId,
+        latitude: search.latitude!,
+        longitude: search.longitude!,
+        category: search.category,
+        radius: search.radius,
+        sources: search.sources,
+      })
+      .catch((error: any) => this.logger.error(`Pesquisa ${search.id} falhou: ${error.message}`, error.stack));
+
+    return search;
   }
 
   @Get()

@@ -1,14 +1,20 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
-import { Logger } from '@nestjs/common';
-import { PrismaService } from '../../../database/prisma.service';
-import { EnrichmentService } from '../../enrichment/enrichment.service';
-import { SearchService } from '../../search/search.service';
-import { NotificationsService } from '../../notifications/notifications.service';
-import { AI_ENRICHMENT_BATCH_SIZE, AI_ENRICHMENT_CONCURRENCY } from '../../../common/constants';
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../../database/prisma.service';
+import { EnrichmentService } from '../enrichment/enrichment.service';
+import { SearchService } from './search.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { AI_ENRICHMENT_BATCH_SIZE } from '../../common/constants';
 
-@Processor('enrichment')
-export class EnrichmentProcessor extends WorkerHost {
+export interface RunEnrichmentJob {
+  searchId: string;
+  userId: string;
+  companyIds: string[];
+}
+
+// Runs AI enrichment in-process (see search.processor.ts for why: no
+// Postgres/Redis in the desktop build, so no real job queue is needed).
+@Injectable()
+export class EnrichmentProcessor {
   private readonly logger = new Logger(EnrichmentProcessor.name);
 
   constructor(
@@ -16,12 +22,10 @@ export class EnrichmentProcessor extends WorkerHost {
     private readonly enrichmentService: EnrichmentService,
     private readonly searchService: SearchService,
     private readonly notifications: NotificationsService,
-  ) {
-    super();
-  }
+  ) {}
 
-  async process(job: Job<{ searchId: string; userId: string; companyIds: string[] }>) {
-    const { searchId, userId, companyIds } = job.data;
+  async run(data: RunEnrichmentJob) {
+    const { searchId, userId, companyIds } = data;
 
     try {
       await this.searchService.addLog(searchId, 'Iniciando análise de IA para cada empresa...', 'info', 'ai');
@@ -75,7 +79,6 @@ export class EnrichmentProcessor extends WorkerHost {
         'success',
         { searchId },
       );
-
     } catch (error: any) {
       this.logger.error(`Enriquecimento falhou: ${error.message}`, error.stack);
       await this.prisma.search.update({

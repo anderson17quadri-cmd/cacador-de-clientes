@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { SearchController } from './search.controller';
 import { SearchService } from './search.service';
+import { SearchProcessor } from './search.processor';
 
 describe('SearchController', () => {
   let app: INestApplication;
@@ -19,11 +20,14 @@ describe('SearchController', () => {
     streamProgress: jest.fn(),
   };
 
+  const mockSearchProcessor = { run: jest.fn().mockResolvedValue(undefined) };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SearchController],
       providers: [
         { provide: SearchService, useValue: mockSearchService },
+        { provide: SearchProcessor, useValue: mockSearchProcessor },
       ],
     }).compile();
 

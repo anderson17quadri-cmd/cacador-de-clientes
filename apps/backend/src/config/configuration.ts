@@ -1,11 +1,10 @@
 export default () => ({
   port: parseInt(process.env.PORT || '3001', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
+  // Data dir for the desktop build (see apps/desktop) - defaults to "."
+  // which preserves today's behavior for dev/hosted deployments.
+  dataDir: process.env.LEADHUNTER_DATA_DIR || '.',
   database: { url: process.env.DATABASE_URL },
-  redis: {
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
-    password: process.env.REDIS_PASSWORD,
-  },
   jwt: {
     secret: process.env.JWT_SECRET || 'dev-secret-change-me',
     refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev-refresh-change-me',

@@ -1,44 +1,6 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: leadhunter-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: leadhunter
-      POSTGRES_PASSWORD: leadhunter123
-      POSTGRES_DB: leadhunter
-    ports:
-      - '5432:5432'
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U leadhunter']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - leadhunter-network
-
-  redis:
-    image: redis:7-alpine
-    container_name: leadhunter-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
-    ports:
-      - '6379:6379'
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - leadhunter-network
-
   backend:
     build:
       context: .
@@ -49,9 +11,8 @@ services:
       - '3001:3001'
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://leadhunter:leadhunter123@postgres:5432/leadhunter?schema=public
-      - REDIS_URL=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - LEADHUNTER_DATA_DIR=/app/data
+      - DATABASE_URL=file:/app/data/leadhunter.db
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change-me-in-production}
       - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY:-}
@@ -60,12 +21,8 @@ services:
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASS=${SMTP_PASS:-}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     volumes:
+      - backend_data:/app/data
       - uploads_data:/app/uploads
     networks:
       - leadhunter-network
@@ -103,8 +60,7 @@ services:
       - leadhunter-network
 
 volumes:
-  postgres_data:
-  redis_data:
+  backend_data:
   uploads_data:
 
 networks:

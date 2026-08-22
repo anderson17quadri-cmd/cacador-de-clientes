@@ -1,20 +1,31 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
-import { Logger } from '@nestjs/common';
-import { SearchService } from '../../search/search.service';
-import { CompaniesService } from '../../companies/companies.service';
-import { GooglePlacesService } from '../../../services/collectors/google-places.service';
-import { NominatimService } from '../../../services/collectors/nominatim.service';
-import { OverpassService } from '../../../services/collectors/overpass.service';
-import { FoursquareService } from '../../../services/collectors/foursquare.service';
-import { YelpService } from '../../../services/collectors/yelp.service';
-import { WebsiteEnricherService } from '../../../services/collectors/website-enricher.service';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { PrismaService } from '../../../database/prisma.service';
+import { Injectable, Logger } from '@nestjs/common';
+import { SearchService } from './search.service';
+import { EnrichmentProcessor } from './enrichment.processor';
+import { CompaniesService } from '../companies/companies.service';
+import { GooglePlacesService } from '../../services/collectors/google-places.service';
+import { NominatimService } from '../../services/collectors/nominatim.service';
+import { OverpassService } from '../../services/collectors/overpass.service';
+import { FoursquareService } from '../../services/collectors/foursquare.service';
+import { YelpService } from '../../services/collectors/yelp.service';
+import { WebsiteEnricherService } from '../../services/collectors/website-enricher.service';
+import { PrismaService } from '../../database/prisma.service';
 
-@Processor('search')
-export class SearchProcessor extends WorkerHost {
+export interface RunSearchJob {
+  searchId: string;
+  userId: string;
+  latitude: number;
+  longitude: number;
+  category: string;
+  radius: number;
+  sources: string[];
+}
+
+// Runs a search in-process instead of via a BullMQ worker. This app targets
+// a single-user desktop install (no Postgres/Redis), so an in-memory
+// fire-and-forget job is enough - there's no multi-worker fan-out to gain
+// from a real queue here.
+@Injectable()
+export class SearchProcessor {
   private readonly logger = new Logger(SearchProcessor.name);
 
   constructor(
@@ -27,13 +38,11 @@ export class SearchProcessor extends WorkerHost {
     private readonly yelp: YelpService,
     private readonly websiteEnricher: WebsiteEnricherService,
     private readonly prisma: PrismaService,
-    @InjectQueue('enrichment') private readonly enrichmentQueue: Queue,
-  ) {
-    super();
-  }
+    private readonly enrichmentProcessor: EnrichmentProcessor,
+  ) {}
 
-  async process(job: Job<{ searchId: string; userId: string; latitude: number; longitude: number; category: string; radius: number; sources: string[] }>) {
-    const { searchId, userId, latitude, longitude, category, radius, sources } = job.data;
+  async run(data: RunSearchJob) {
+    const { searchId, userId, latitude, longitude, category, radius, sources } = data;
 
     try {
       await this.searchService.addLog(searchId, 'Iniciando coleta de dados...', 'info', 'system');
@@ -88,16 +97,13 @@ export class SearchProcessor extends WorkerHost {
       await this.searchService.addLog(searchId, 'Contactos enriquecidos. Iniciando análise IA...', 'info', 'system');
 
       if (allCompanies.length > 0) {
-        await this.enrichmentQueue.add('enrich-companies', {
-          searchId,
-          userId,
-          companyIds: allCompanies.map((c: any) => c.id),
-        });
+        this.enrichmentProcessor
+          .run({ searchId, userId, companyIds: allCompanies.map((c: any) => c.id) })
+          .catch((error: any) => this.logger.error(`Enriquecimento falhou: ${error.message}`, error.stack));
       }
 
       await this.searchService.updateProgress(searchId, { progress: 55 });
       await this.searchService.addLog(searchId, 'Pesquisa concluída. Enriquecimento em progresso.', 'success', 'system');
-
     } catch (error: any) {
       this.logger.error(`Pesquisa falhou: ${error.message}`, error.stack);
       await this.searchService.addLog(searchId, `Falha crítica: ${error.message}`, 'error', 'system');

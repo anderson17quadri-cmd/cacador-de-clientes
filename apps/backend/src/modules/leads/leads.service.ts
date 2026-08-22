@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
+import { deserializeCompany } from '../../common/utils/json-fields';
 
 @Injectable()
 export class LeadsService {
@@ -28,7 +29,7 @@ export class LeadsService {
       this.prisma.company.count({ where }),
     ]);
 
-    return { data, meta: createPaginationMeta(total, page, take) };
+    return { data: data.map(deserializeCompany), meta: createPaginationMeta(total, page, take) };
   }
 
   async findById(id: string) {
@@ -40,7 +41,7 @@ export class LeadsService {
       },
     });
     if (!company) throw new NotFoundException('Lead não encontrado');
-    return company;
+    return deserializeCompany(company);
   }
 
   async getPremiumLeads(userId: string, page: number, limit: number) {
@@ -64,7 +65,7 @@ export class LeadsService {
       this.prisma.company.count({ where }),
     ]);
 
-    return { data, meta: createPaginationMeta(total, page, take) };
+    return { data: data.map(deserializeCompany), meta: createPaginationMeta(total, page, take) };
   }
 
   async getLeadStats(userId: string) {

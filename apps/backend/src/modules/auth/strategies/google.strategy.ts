@@ -7,8 +7,12 @@ import { ConfigService } from '@nestjs/config';
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(config: ConfigService) {
     super({
-      clientID: config.get('google.clientId'),
-      clientSecret: config.get('google.clientSecret'),
+      // passport-oauth2 throws at construction if these are empty, so we
+      // fall back to placeholders when Google OAuth isn't configured -
+      // the /auth/google routes simply fail at Google's end instead of
+      // crashing the whole app on boot.
+      clientID: config.get('google.clientId') || 'not-configured',
+      clientSecret: config.get('google.clientSecret') || 'not-configured',
       callbackURL: `${config.get('API_URL', 'http://localhost:3001')}/api/auth/google/callback`,
       scope: ['email', 'profile'],
     });

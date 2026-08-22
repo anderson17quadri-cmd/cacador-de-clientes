@@ -1,0 +1,39 @@
+# electron-builder's equivalent of the PyInstaller .spec file - a real
+# config file instead of CLI one-liners, so the build is reproducible.
+appId: ai.leadhunter.desktop
+productName: LeadHunter AI
+directories:
+  output: release
+  buildResources: build
+
+# Only the compiled main process + package.json are needed here - main.ts
+# only imports Node built-ins and `electron` (provided by the runtime), so
+# apps/desktop's own node_modules doesn't need to be bundled at all.
+files:
+  - dist/**/*
+  - package.json
+
+# build_windows.bat stages the backend and web workspace packages here with
+# a flattened, non-symlinked node_modules (via `pnpm deploy`) before this
+# runs - pnpm's normal symlinked node_modules doesn't survive being copied
+# into an installer.
+extraResources:
+  - from: resources/backend
+    to: backend
+  - from: resources/web
+    to: web
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: LeadHunter AI
+  artifactName: LeadHunterAI-Setup-${version}.exe

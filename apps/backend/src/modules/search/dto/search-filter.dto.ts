@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsEnum, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SearchStatus } from '@prisma/client';
+import { SearchStatus } from '../../../common/enums';
 
 export class SearchFilterDto {
   @ApiPropertyOptional()
