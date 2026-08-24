@@ -42,7 +42,7 @@ echo === [6/8] Staging backend (flattened node_modules + generated Prisma client
 rem --legacy: pnpm 10+ defaults to "injected" workspace deploys, which
 rem needs inject-workspace-packages=true set project-wide. --legacy keeps
 rem the plain copy-and-flatten behavior this script actually wants.
-if exist "apps\desktop\resources\backend" rmdir /s /q "apps\desktop\resources\backend"
+if exist "apps\desktop\resources\backend" call :rmrf "apps\desktop\resources\backend"
 call pnpm --filter @leadhunter/backend deploy "apps\desktop\resources\backend" --prod --legacy
 if errorlevel 1 goto :error
 pushd "apps\desktop\resources\backend"
@@ -52,7 +52,7 @@ if errorlevel 1 (popd & goto :error)
 popd
 
 echo === [7/8] Staging web (flattened node_modules) ===
-if exist "apps\desktop\resources\web" rmdir /s /q "apps\desktop\resources\web"
+if exist "apps\desktop\resources\web" call :rmrf "apps\desktop\resources\web"
 call pnpm --filter @leadhunter/web deploy "apps\desktop\resources\web" --prod --legacy
 if errorlevel 1 goto :error
 
@@ -72,3 +72,17 @@ echo.
 echo Build FAILED - see the error above.
 pause
 exit /b 1
+
+rem pnpm's node_modules\.pnpm folder names encode the full dependency
+rem resolution key, which combined with a deep project path can exceed
+rem Windows' 260-char MAX_PATH - plain "rmdir /s /q" then fails to delete
+rem individual files ("cannot find the path") and leaves the folder
+rem non-empty. robocopy /MIR against an empty folder handles long paths
+rem reliably and is the standard workaround for this.
+:rmrf
+set "RMRF_TMP=%TEMP%\leadhunter-empty-%RANDOM%"
+mkdir "%RMRF_TMP%"
+robocopy "%RMRF_TMP%" "%~1" /MIR /NFL /NDL /NJH /NJS >nul
+rmdir "%RMRF_TMP%"
+rmdir "%~1" 2>nul
+exit /b 0
