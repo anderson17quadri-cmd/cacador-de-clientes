@@ -53,9 +53,11 @@ popd
 
 echo.
 echo Build complete. Installer is in apps\desktop\release\
+pause
 exit /b 0
 
 :error
 echo.
-echo Build FAILED.
+echo Build FAILED - see the error above.
+pause
 exit /b 1
