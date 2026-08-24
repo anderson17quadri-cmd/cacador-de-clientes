@@ -39,17 +39,21 @@ call pnpm --filter @leadhunter/desktop build
 if errorlevel 1 goto :error
 
 echo === [6/8] Staging backend (flattened node_modules + generated Prisma client) ===
+rem --legacy: pnpm 10+ defaults to "injected" workspace deploys, which
+rem needs inject-workspace-packages=true set project-wide. --legacy keeps
+rem the plain copy-and-flatten behavior this script actually wants.
 if exist "apps\desktop\resources\backend" rmdir /s /q "apps\desktop\resources\backend"
-call pnpm --filter @leadhunter/backend deploy "apps\desktop\resources\backend" --prod
+call pnpm --filter @leadhunter/backend deploy "apps\desktop\resources\backend" --prod --legacy
 if errorlevel 1 goto :error
 pushd "apps\desktop\resources\backend"
+set DATABASE_URL=file:./dev.db
 call node node_modules\prisma\build\index.js generate
 if errorlevel 1 (popd & goto :error)
 popd
 
 echo === [7/8] Staging web (flattened node_modules) ===
 if exist "apps\desktop\resources\web" rmdir /s /q "apps\desktop\resources\web"
-call pnpm --filter @leadhunter/web deploy "apps\desktop\resources\web" --prod
+call pnpm --filter @leadhunter/web deploy "apps\desktop\resources\web" --prod --legacy
 if errorlevel 1 goto :error
 
 echo === [8/8] Packaging the Windows installer ===
