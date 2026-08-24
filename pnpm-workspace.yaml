@@ -2,7 +2,12 @@ packages:
   - 'apps/*'
   - 'packages/*'
 allowBuilds:
-  '@nestjs/core': true
+  # @nestjs/core's postinstall is just "opencollective || exit 0" - a
+  # donation banner, no functional effect on the package. Disabled because
+  # it's the consistent trigger for a pnpm crash on Windows/Node 24
+  # ("readStream must be readable") seen during both `pnpm install` and
+  # `pnpm deploy --legacy`.
+  '@nestjs/core': false
   '@prisma/client': true
   '@prisma/engines': true
   electron: true
