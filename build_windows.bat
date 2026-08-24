@@ -14,24 +14,31 @@ rem Run this from the repo root: build_windows.bat
 
 cd /d "%~dp0"
 
-echo === [1/7] Installing dependencies ===
+echo === [1/8] Installing dependencies ===
 call pnpm install
 if errorlevel 1 goto :error
 
-echo === [2/7] Building backend ===
+echo === [2/8] Generating Prisma Client (nest build type-checks against it) ===
+rem generate doesn't need a real, reachable database - it only needs
+rem DATABASE_URL to be *set* so schema.prisma's env("DATABASE_URL") resolves.
+set DATABASE_URL=file:./dev.db
+call pnpm --filter @leadhunter/backend exec prisma generate
+if errorlevel 1 goto :error
+
+echo === [3/8] Building backend ===
 call pnpm --filter @leadhunter/backend build
 if errorlevel 1 goto :error
 
-echo === [3/7] Building web (relative /api base URL for the desktop shell) ===
+echo === [4/8] Building web (relative /api base URL for the desktop shell) ===
 set NEXT_PUBLIC_API_URL=/api
 call pnpm --filter @leadhunter/web build
 if errorlevel 1 goto :error
 
-echo === [4/7] Building desktop wrapper ===
+echo === [5/8] Building desktop wrapper ===
 call pnpm --filter @leadhunter/desktop build
 if errorlevel 1 goto :error
 
-echo === [5/7] Staging backend (flattened node_modules + generated Prisma client) ===
+echo === [6/8] Staging backend (flattened node_modules + generated Prisma client) ===
 if exist "apps\desktop\resources\backend" rmdir /s /q "apps\desktop\resources\backend"
 call pnpm --filter @leadhunter/backend deploy "apps\desktop\resources\backend" --prod
 if errorlevel 1 goto :error
@@ -40,12 +47,12 @@ call node node_modules\prisma\build\index.js generate
 if errorlevel 1 (popd & goto :error)
 popd
 
-echo === [6/7] Staging web (flattened node_modules) ===
+echo === [7/8] Staging web (flattened node_modules) ===
 if exist "apps\desktop\resources\web" rmdir /s /q "apps\desktop\resources\web"
 call pnpm --filter @leadhunter/web deploy "apps\desktop\resources\web" --prod
 if errorlevel 1 goto :error
 
-echo === [7/7] Packaging the Windows installer ===
+echo === [8/8] Packaging the Windows installer ===
 pushd apps\desktop
 call npx electron-builder --win
 if errorlevel 1 (popd & goto :error)
