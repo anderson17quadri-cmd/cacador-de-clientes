@@ -2,6 +2,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+RUN apk add --no-cache openssl
 RUN corepack enable && corepack prepare pnpm@9.5.0 --activate
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json ./
@@ -17,13 +18,14 @@ COPY packages/utils/src packages/utils/src
 COPY packages/config/src packages/config/src
 COPY apps/backend apps/backend
 
-RUN pnpm db:generate --filter=@leadhunter/backend
-RUN pnpm build --filter=@leadhunter/backend
+RUN pnpm --filter=@leadhunter/backend db:generate
+RUN pnpm --filter=@leadhunter/backend build
 
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
+RUN apk add --no-cache openssl
 RUN corepack enable && corepack prepare pnpm@9.5.0 --activate
 
 COPY --from=builder /app/node_modules /app/node_modules
@@ -36,4 +38,4 @@ RUN mkdir -p /app/uploads/exports
 
 EXPOSE 3001
 
-CMD ["node", "apps/backend/dist/main.js"]
+CMD ["sh", "-c", "node apps/backend/node_modules/prisma/build/index.js db push --schema apps/backend/prisma/schema.prisma --skip-generate && node apps/backend/dist/src/main.js"]

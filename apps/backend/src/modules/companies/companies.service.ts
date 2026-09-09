@@ -72,6 +72,38 @@ export class CompaniesService {
     return company;
   }
 
+  async getWhatsappSelection(userId: string, filters: CompanyFilterDto) {
+    const where: any = {
+      search: { userId },
+      OR: [{ whatsapp: { not: null } }, { phone: { not: null } }],
+    };
+    if (filters.search) {
+      where.AND = [{
+        OR: [
+          { name: { contains: filters.search } },
+          { description: { contains: filters.search } },
+          { category: { contains: filters.search } },
+        ],
+      }];
+    }
+    if (filters.category) where.category = filters.category;
+    if (filters.city) where.city = { contains: filters.city };
+    if (filters.state) where.state = filters.state;
+    if (filters.country) where.country = filters.country;
+    if (filters.searchId) where.searchId = filters.searchId;
+    if (filters.hasWebsite !== undefined) where.hasWebsite = filters.hasWebsite;
+    if (filters.hasInstagram !== undefined) where.hasInstagram = filters.hasInstagram;
+    if (filters.hasEmail !== undefined) where.hasEmail = filters.hasEmail;
+
+    const leads = await this.prisma.company.findMany({
+      where,
+      take: 10000,
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    return { ids: leads.map((lead) => lead.id), total: leads.length };
+  }
+
   async getAnalysis(id: string) {
     const company = await this.prisma.company.findUnique({
       where: { id },

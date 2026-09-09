@@ -7,6 +7,11 @@ export interface UserProfile {
   avatarUrl?: string | null;
   createdAt: string;
   lastLoginAt?: string | null;
+  theme?: 'light' | 'dark' | 'system';
+  emailNotifications?: boolean;
+  searchNotifications?: boolean;
+  defaultRadius?: number;
+  defaultCountry?: string;
 }
 
 export interface Company {

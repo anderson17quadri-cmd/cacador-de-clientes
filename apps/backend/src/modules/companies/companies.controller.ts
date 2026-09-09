@@ -4,6 +4,7 @@ import { CompaniesService } from './companies.service';
 import { CompanyFilterDto } from './dto/company-filter.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ParseUUIDPipe } from '../../common/pipes/parse-objectid.pipe';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Companies')
 @ApiBearerAuth()
@@ -16,6 +17,15 @@ export class CompaniesController {
   @ApiOperation({ summary: 'Listar todas as empresas com filtros' })
   async findAll(@Query() filters: CompanyFilterDto) {
     return this.companiesService.findAll(filters);
+  }
+
+  @Get('selection/whatsapp')
+  @ApiOperation({ summary: 'Selecionar todos os leads com WhatsApp do usuário' })
+  async getWhatsappSelection(
+    @CurrentUser('id') userId: string,
+    @Query() filters: CompanyFilterDto,
+  ) {
+    return this.companiesService.getWhatsappSelection(userId, filters);
   }
 
   @Get(':id')

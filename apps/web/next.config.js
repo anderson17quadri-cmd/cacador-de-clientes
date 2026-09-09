@@ -1,12 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  ...(process.env.NEXT_STANDALONE === 'true' ? { output: 'standalone' } : {}),
   transpilePackages: ['@leadhunter/types', '@leadhunter/utils', '@leadhunter/config'],
   images: {
     domains: ['lh3.googleusercontent.com', 'avatars.githubusercontent.com', 'maps.googleapis.com'],
-  },
-  experimental: {
-    serverActions: true,
   },
   async rewrites() {
     return [

@@ -1,13 +1,13 @@
 import { Controller, Get, Patch, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { UpdateUserDto } from './dto/user.dto';
+import { ChangePasswordDto, UpdateSettingsDto, UpdateUserDto } from './dto/user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ParseUUIDPipe } from '../../common/pipes/parse-objectid.pipe';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../../common/types/domain';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -15,6 +15,24 @@ import { UserRole } from '@prisma/client';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get('settings')
+  @ApiOperation({ summary: 'Obter configurações do usuário' })
+  async getSettings(@CurrentUser('id') userId: string) {
+    return this.usersService.getSettings(userId);
+  }
+
+  @Patch('settings')
+  @ApiOperation({ summary: 'Atualizar configurações do usuário' })
+  async updateSettings(@CurrentUser('id') userId: string, @Body() dto: UpdateSettingsDto) {
+    return this.usersService.updateSettings(userId, dto);
+  }
+
+  @Patch('password')
+  @ApiOperation({ summary: 'Alterar senha do usuário' })
+  async changePassword(@CurrentUser('id') userId: string, @Body() dto: ChangePasswordDto) {
+    return this.usersService.changePassword(userId, dto);
+  }
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)

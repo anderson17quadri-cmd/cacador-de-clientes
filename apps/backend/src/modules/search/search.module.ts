@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
 import { SearchController } from './search.controller';
 import { SearchService } from './search.service';
 import { GooglePlacesService } from '../../services/collectors/google-places.service';
@@ -9,11 +8,11 @@ import { FoursquareService } from '../../services/collectors/foursquare.service'
 import { YelpService } from '../../services/collectors/yelp.service';
 import { WebsiteEnricherService } from '../../services/collectors/website-enricher.service';
 import { CompaniesModule } from '../companies/companies.module';
+import { LocalQueueModule } from '../queue/local-queue.module';
 
 @Module({
   imports: [
-    BullModule.registerQueue({ name: 'search' }),
-    BullModule.registerQueue({ name: 'enrichment' }),
+    LocalQueueModule,
     CompaniesModule,
   ],
   controllers: [SearchController],

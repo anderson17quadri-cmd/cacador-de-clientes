@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
-import { PresenceLevel, Company, EnrichedData } from '@prisma/client';
+import { Company, EnrichedData } from '@prisma/client';
+import { PresenceLevel } from '../../common/types/domain';
 import OpenAI from 'openai';
 import { AI_ENRICHMENT_BATCH_SIZE } from '../../common/constants';
 

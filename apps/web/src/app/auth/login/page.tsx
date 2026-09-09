@@ -10,7 +10,6 @@ import toast from 'react-hot-toast';
 import { Zap, Mail, Lock, Eye, EyeOff, Github } from 'lucide-react';
 import { useAuthStore } from '@/lib/store';
 import api from '@/lib/api';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';

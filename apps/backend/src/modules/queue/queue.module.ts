@@ -1,6 +1,5 @@
-import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Inject, Module, OnModuleInit } from '@nestjs/common';
+import { getQueueToken } from '@nestjs/bullmq';
 import { SearchProcessor } from './processors/search.processor';
 import { EnrichmentProcessor } from './processors/enrichment.processor';
 import { ExportProcessor } from './processors/export.processor';
@@ -9,14 +8,11 @@ import { CompaniesModule } from '../companies/companies.module';
 import { EnrichmentModule } from '../enrichment/enrichment.module';
 import { ExportsModule } from '../exports/exports.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { LocalQueue, LocalQueueModule } from './local-queue.module';
 
 @Module({
   imports: [
-    BullModule.registerQueue(
-      { name: 'search' },
-      { name: 'enrichment' },
-      { name: 'exports' },
-    ),
+    LocalQueueModule,
     SearchModule,
     CompaniesModule,
     EnrichmentModule,
@@ -24,6 +20,21 @@ import { NotificationsModule } from '../notifications/notifications.module';
     NotificationsModule,
   ],
   providers: [SearchProcessor, EnrichmentProcessor, ExportProcessor],
-  exports: [BullModule],
+  exports: [LocalQueueModule],
 })
-export class QueueModule {}
+export class QueueModule implements OnModuleInit {
+  constructor(
+    @Inject(getQueueToken('search')) private readonly searchQueue: LocalQueue,
+    @Inject(getQueueToken('enrichment')) private readonly enrichmentQueue: LocalQueue,
+    @Inject(getQueueToken('exports')) private readonly exportsQueue: LocalQueue,
+    private readonly searchProcessor: SearchProcessor,
+    private readonly enrichmentProcessor: EnrichmentProcessor,
+    private readonly exportProcessor: ExportProcessor,
+  ) {}
+
+  onModuleInit() {
+    this.searchQueue.register((job) => this.searchProcessor.process(job as any));
+    this.enrichmentQueue.register((job) => this.enrichmentProcessor.process(job as any));
+    this.exportsQueue.register((job) => this.exportProcessor.process(job as any));
+  }
+}

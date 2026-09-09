@@ -42,6 +42,12 @@ export class NotificationsService {
   }
 
   async create(userId: string, title: string, message: string, type = 'info', data?: any) {
+    const preferences = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { searchNotifications: true },
+    });
+    if (preferences && !preferences.searchNotifications) return null;
+
     return this.prisma.notification.create({
       data: { userId, title, message, type, data },
     });

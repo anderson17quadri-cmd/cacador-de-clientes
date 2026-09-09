@@ -4,7 +4,7 @@ import { EnrichmentService } from './enrichment.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../../common/types/domain';
 import { ParseUUIDPipe } from '../../common/pipes/parse-objectid.pipe';
 
 @ApiTags('Enrichment')

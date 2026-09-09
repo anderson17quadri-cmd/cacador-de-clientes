@@ -1,21 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Users, Search, Star, Download,
   Globe, Instagram, Phone, Mail, MapPin,
-  Loader2, SlidersHorizontal, X, ChevronLeft, ChevronRight,
+  Loader2, SlidersHorizontal, X, ChevronLeft, ChevronRight, MessageCircle, CheckSquare,
 } from 'lucide-react';
-import { useSearchStore } from '@/lib/store';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatNumber, getScoreColor, formatDate } from '@leadhunter/utils';
+import { formatNumber, getScoreColor } from '@leadhunter/utils';
 import type { EnrichedCompany } from '@leadhunter/types';
 
 interface Filters {
@@ -27,7 +26,18 @@ interface Filters {
   minScore?: number;
 }
 
+function instagramUrl(value: string) {
+  const normalized = value.trim();
+  if (/^https?:\/\//i.test(normalized)) return normalized;
+  return `https://www.instagram.com/${normalized.replace(/^@/, '').replace(/^instagram\.com\//i, '')}`;
+}
+
+function instagramHandle(value: string) {
+  return value.trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').replace(/\/$/, '');
+}
+
 export default function LeadsPage() {
+  const router = useRouter();
   const [leads, setLeads] = useState<EnrichedCompany[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -39,10 +49,16 @@ export default function LeadsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedLead, setSelectedLead] = useState<EnrichedCompany | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [selectedWhatsappIds, setSelectedWhatsappIds] = useState<Set<string>>(new Set());
+  const [selectingAll, setSelectingAll] = useState(false);
 
   useEffect(() => {
     fetchLeads();
   }, [page, filters, search]);
+
+  useEffect(() => {
+    setSelectedWhatsappIds(new Set());
+  }, [filters, search]);
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -105,6 +121,50 @@ export default function LeadsPage() {
       setExporting(false);
     }
   }, [search, filters]);
+
+  const whatsappLeadsOnPage = leads.filter((lead) => Boolean(lead.whatsapp || lead.phone));
+  const allPageWhatsappSelected = whatsappLeadsOnPage.length > 0
+    && whatsappLeadsOnPage.every((lead) => selectedWhatsappIds.has(lead.id));
+
+  const toggleWhatsappLead = useCallback((id: string) => {
+    setSelectedWhatsappIds((old) => {
+      const next = new Set(old);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const togglePageWhatsapp = useCallback(() => {
+    setSelectedWhatsappIds((old) => {
+      const next = new Set(old);
+      const shouldSelect = whatsappLeadsOnPage.some((lead) => !next.has(lead.id));
+      whatsappLeadsOnPage.forEach((lead) => shouldSelect ? next.add(lead.id) : next.delete(lead.id));
+      return next;
+    });
+  }, [whatsappLeadsOnPage]);
+
+  const selectAllWhatsapp = useCallback(async () => {
+    setSelectingAll(true);
+    try {
+      const params: Record<string, any> = {};
+      if (search) params.search = search;
+      if (filters.hasWebsite) params.hasWebsite = true;
+      if (filters.hasInstagram) params.hasInstagram = true;
+      if (filters.hasEmail) params.hasEmail = true;
+      if (filters.category) params.category = filters.category;
+      const response = await api.get('/companies/selection/whatsapp', { params });
+      setSelectedWhatsappIds(new Set(response.data.data.ids || []));
+    } finally {
+      setSelectingAll(false);
+    }
+  }, [search, filters]);
+
+  const createWhatsappCampaign = useCallback(() => {
+    const ids = Array.from(selectedWhatsappIds);
+    if (!ids.length) return;
+    localStorage.setItem('campaignLeadIds', JSON.stringify(ids));
+    router.push('/dashboard/campaigns?channel=whatsapp');
+  }, [router, selectedWhatsappIds]);
 
   const quickFilters = [
     { key: 'hasWebsite' as const, label: 'Tem Site', icon: Globe },
@@ -231,6 +291,25 @@ export default function LeadsPage() {
               <p className="text-sm text-muted-foreground">
                 {formatNumber(total)} leads encontrados
               </p>
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3">
+                <Button variant="outline" size="sm" onClick={togglePageWhatsapp} disabled={!whatsappLeadsOnPage.length}>
+                  <CheckSquare className="mr-2 h-4 w-4" />
+                  {allPageWhatsappSelected ? 'Desmarcar página' : 'Selecionar WhatsApp da página'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={selectAllWhatsapp} disabled={selectingAll}>
+                  {selectingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckSquare className="mr-2 h-4 w-4" />}
+                  Selecionar todos com WhatsApp
+                </Button>
+                {selectedWhatsappIds.size > 0 && (
+                  <>
+                    <span className="text-sm font-medium">{selectedWhatsappIds.size} selecionados</span>
+                    <Button size="sm" onClick={createWhatsappCampaign}>
+                      <MessageCircle className="mr-2 h-4 w-4" />Criar campanha WhatsApp
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedWhatsappIds(new Set())}>Limpar</Button>
+                  </>
+                )}
+              </div>
               {leads.map((lead) => (
                 <motion.div
                   key={lead.id}
@@ -248,6 +327,16 @@ export default function LeadsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
+                            {(lead.whatsapp || lead.phone) && (
+                              <input
+                                type="checkbox"
+                                aria-label={`Selecionar ${lead.name} para WhatsApp`}
+                                checked={selectedWhatsappIds.has(lead.id)}
+                                onChange={() => toggleWhatsappLead(lead.id)}
+                                onClick={(event) => event.stopPropagation()}
+                                className="h-4 w-4 shrink-0 accent-primary"
+                              />
+                            )}
                             <h3 className="font-semibold truncate">{lead.name}</h3>
                             {lead.enrichedData?.qualityScore ? (
                               <span className={cn('shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-white', getScoreColor(lead.enrichedData.qualityScore))}>
@@ -287,7 +376,7 @@ export default function LeadsPage() {
                               </a>
                             )}
                             {lead.instagram && (
-                              <a href={`https://instagram.com/${lead.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-pink-600 hover:bg-pink-700 text-white text-[11px] font-medium px-2 py-1">
+                              <a href={instagramUrl(lead.instagram)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-pink-600 hover:bg-pink-700 text-white text-[11px] font-medium px-2 py-1">
                                 <Instagram className="h-3 w-3" />Instagram
                               </a>
                             )}
@@ -372,9 +461,9 @@ export default function LeadsPage() {
                       </a>
                     )}
                     {selectedLead.instagram && (
-                      <a href={`https://instagram.com/${selectedLead.instagram}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <a href={instagramUrl(selectedLead.instagram)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
                         <Instagram className="h-4 w-4 shrink-0" />
-                        @{selectedLead.instagram}
+                        @{instagramHandle(selectedLead.instagram)}
                       </a>
                     )}
                   </div>

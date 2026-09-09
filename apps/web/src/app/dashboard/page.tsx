@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import {
-  Users, Star, Globe, Instagram, Phone, Mail, TrendingUp,
+  Users, Star, Globe, Instagram, Phone, Mail,
   Search, BarChart3, ChevronRight, Zap, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';

@@ -1,4 +1,7 @@
-import { PrismaClient, UserRole, PlanType } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+
+const UserRole = { SUPER_ADMIN: 'SUPER_ADMIN', USER: 'USER' } as const;
+const PlanType = { ENTERPRISE: 'ENTERPRISE', PRO: 'PRO', FREE: 'FREE' } as const;
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();

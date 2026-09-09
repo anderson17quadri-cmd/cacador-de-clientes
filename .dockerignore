@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+.venv-launcher
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/build
+**/coverage
+*.log
+graphify-out

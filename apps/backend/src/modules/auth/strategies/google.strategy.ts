@@ -7,8 +7,8 @@ import { ConfigService } from '@nestjs/config';
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(config: ConfigService) {
     super({
-      clientID: config.get('google.clientId'),
-      clientSecret: config.get('google.clientSecret'),
+      clientID: config.get<string>('google.clientId') || 'oauth-disabled',
+      clientSecret: config.get<string>('google.clientSecret') || 'oauth-disabled',
       callbackURL: `${config.get('API_URL', 'http://localhost:3001')}/api/auth/google/callback`,
       scope: ['email', 'profile'],
     });

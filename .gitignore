@@ -1,6 +1,12 @@
 node_modules/
 dist/
+desktop/source.zip
+desktop/runtime-build/
+desktop/runtime-package.zip
+desktop/portable-test/
+desktop/leadhunter-runtime-*/
 .next/
+.next-stale-*/
 .expo/
 build/
 *.log
@@ -11,6 +17,8 @@ build/
 coverage/
 .turbo/
 *.tsbuildinfo
+__pycache__/
+*.pyc
 prisma/migrations/
 !.prisma/migrations/migration_lock.toml
 supabase/
@@ -24,3 +32,11 @@ ios/GoogleService-Info.plist
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+.venv-launcher/
+.venv-launcher-313/
+LeadHunterAI.spec
+runtime-data/
+*.db
+/leadhunter-*.png
+assets/*-installed.png
+assets/*-extracted.png

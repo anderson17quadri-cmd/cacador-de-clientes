@@ -3,7 +3,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
-import { BullModule } from '@nestjs/bullmq';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CompaniesModule } from './modules/companies/companies.module';
@@ -17,6 +16,10 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PrismaModule } from './database/prisma.module';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation';
+import { HealthController } from './health.controller';
+import { LocalQueueModule } from './modules/queue/local-queue.module';
+import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { ProspectingModule } from './modules/prospecting/prospecting.module';
 
 @Module({
   imports: [
@@ -38,23 +41,7 @@ import { validationSchema } from './config/validation';
         ],
       }),
     }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get('REDIS_HOST', 'localhost'),
-          port: config.get('REDIS_PORT', 6379),
-          password: config.get('REDIS_PASSWORD'),
-        },
-        defaultJobOptions: {
-          removeOnComplete: 100,
-          removeOnFail: 500,
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2000 },
-        },
-      }),
-    }),
+    LocalQueueModule,
     ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
@@ -67,7 +54,10 @@ import { validationSchema } from './config/validation';
     EnrichmentModule,
     QueueModule,
     NotificationsModule,
+    CampaignsModule,
+    ProspectingModule,
   ],
+  controllers: [HealthController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],

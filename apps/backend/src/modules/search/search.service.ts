@@ -7,7 +7,7 @@ import { CreateSearchDto } from './dto/search.dto';
 import { SearchFilterDto } from './dto/search-filter.dto';
 import { GooglePlacesService } from '../../services/collectors/google-places.service';
 import { NominatimService } from '../../services/collectors/nominatim.service';
-import { SearchStatus } from '@prisma/client';
+import { SearchStatus } from '../../common/types/domain';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
 import { MAX_SEARCH_RADIUS, MAX_CONCURRENT_SEARCHES } from '../../common/constants';
 
@@ -66,7 +66,7 @@ export class SearchService {
         latitude: lat,
         longitude: lon,
         radius: dto.radius || 5000,
-        sources: dto.sources || ['google_places', 'nominatim'],
+        sources: (dto.sources || ['google_places', 'nominatim']) as any,
         status: SearchStatus.RUNNING,
         startedAt: new Date(),
       },
@@ -95,8 +95,8 @@ export class SearchService {
 
     const where: any = { userId };
     if (filters.status) where.status = filters.status;
-    if (filters.category) where.category = { contains: filters.category, mode: 'insensitive' };
-    if (filters.city) where.city = { contains: filters.city, mode: 'insensitive' };
+    if (filters.category) where.category = { contains: filters.category };
+    if (filters.city) where.city = { contains: filters.city };
     if (filters.country) where.country = filters.country;
 
     const [data, total] = await Promise.all([

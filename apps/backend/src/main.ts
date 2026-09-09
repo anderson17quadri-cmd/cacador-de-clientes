@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, RequestMethod } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
@@ -18,8 +18,11 @@ async function bootstrap() {
 
   const config = app.get(ConfigService);
   const port = config.get<number>('PORT', 3001);
+  const host = config.get<string>('host', '0.0.0.0');
 
-  app.setGlobalPrefix('api', { exclude: ['health'] });
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'health', method: RequestMethod.GET }],
+  });
 
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(compression());
@@ -63,8 +66,8 @@ async function bootstrap() {
     swaggerOptions: { persistAuthorization: true },
   });
 
-  await app.listen(port);
-  logger.log(`🚀 LeadHunter AI API running on port ${port}`);
+  await app.listen(port, host);
+  logger.log(`🚀 LeadHunter AI API running at ${host}:${port}`);
   logger.log(`📚 Swagger docs at http://localhost:${port}/api/docs`);
 }
 

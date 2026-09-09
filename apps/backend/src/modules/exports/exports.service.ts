@@ -9,7 +9,7 @@ import * as PDFDocumentLib from 'pdfkit';
 const PDFDocument = (PDFDocumentLib as any).default || PDFDocumentLib;
 import { PrismaService } from '../../database/prisma.service';
 import { CreateExportDto } from './dto/export.dto';
-import { ExportFormat } from '@prisma/client';
+import { ExportFormat } from '../../common/types/domain';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
 import { EXPORT_MAX_ROWS } from '../../common/constants';
 
@@ -30,7 +30,7 @@ export class ExportsService {
         searchId: dto.searchId,
         format,
         fileName,
-        filters: dto.filters || {},
+        filters: (dto.filters || {}) as any,
         status: 'processing',
       },
     });

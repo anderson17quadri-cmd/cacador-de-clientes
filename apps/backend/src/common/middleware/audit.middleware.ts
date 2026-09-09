@@ -23,7 +23,7 @@ export class AuditMiddleware implements NestMiddleware {
               action: req.method,
               entity: req.baseUrl.split('/')[2] || 'unknown',
               entityId: (req as any).params?.id,
-              details: { body: req.body, query: req.query, params: req.params },
+              details: { body: req.body, query: req.query, params: req.params } as any,
               ip: req.ip || '',
               userAgent: req.get('user-agent') || '',
             },

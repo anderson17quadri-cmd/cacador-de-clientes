@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../database/prisma.service';
-import { UpdateUserDto } from './dto/user.dto';
+import { ChangePasswordDto, UpdateSettingsDto, UpdateUserDto } from './dto/user.dto';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
 
 @Injectable()
@@ -91,5 +92,49 @@ export class UsersService {
       this.prisma.company.count({ where: { search: { userId } } }),
     ]);
     return { searches, favorites, exports, totalCompanies };
+  }
+
+  async getSettings(userId: string) {
+    const settings = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        theme: true,
+        emailNotifications: true,
+        searchNotifications: true,
+        defaultRadius: true,
+        defaultCountry: true,
+      },
+    });
+    if (!settings) throw new NotFoundException('Usuário não encontrado');
+    return settings;
+  }
+
+  async updateSettings(userId: string, dto: UpdateSettingsDto) {
+    const existing = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!existing) throw new NotFoundException('Usuário não encontrado');
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: dto,
+      select: {
+        theme: true,
+        emailNotifications: true,
+        searchNotifications: true,
+        defaultRadius: true,
+        defaultCountry: true,
+      },
+    });
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuário não encontrado');
+    if (!user.password) {
+      throw new BadRequestException('Esta conta usa login social e não possui senha local');
+    }
+    const valid = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!valid) throw new BadRequestException('Senha atual incorreta');
+    const password = await bcrypt.hash(dto.newPassword, 12);
+    await this.prisma.user.update({ where: { id: userId }, data: { password } });
+    return { message: 'Senha alterada com sucesso' };
   }
 }

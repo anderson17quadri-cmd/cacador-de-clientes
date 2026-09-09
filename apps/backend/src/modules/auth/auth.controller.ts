@@ -13,6 +13,14 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Post('local')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Abrir sessão pessoal do aplicativo local' })
+  async localSession() {
+    return this.authService.localSession();
+  }
+
+  @Public()
   @Post('register')
   @ApiOperation({ summary: 'Registrar novo usuário' })
   async register(@Body() dto: RegisterDto) {

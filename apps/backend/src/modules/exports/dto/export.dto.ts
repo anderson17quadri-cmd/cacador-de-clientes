@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, IsObject } from 'class-validator';
-import { ExportFormat } from '@prisma/client';
+import { ExportFormat } from '../../../common/types/domain';
 
 export class CreateExportDto {
   @ApiPropertyOptional({ enum: ExportFormat })

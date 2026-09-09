@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuthStore, useUIStore } from '@/lib/store';
+import { useUIStore } from '@/lib/store';
 import {
   LayoutDashboard,
   Search,
@@ -11,21 +11,27 @@ import {
   Download,
   Bell,
   Settings,
-  LogOut,
   X,
   ChevronLeft,
   Zap,
+  Send,
+  KanbanSquare,
+  Inbox,
   BarChart3,
-  Map,
+  Clock3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { getInitials } from '@leadhunter/utils';
 
 const menuItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Pesquisar', href: '/dashboard/search', icon: Search },
   { label: 'Leads', href: '/dashboard/leads', icon: Users },
+  { label: 'CRM', href: '/dashboard/crm', icon: KanbanSquare },
+  { label: 'Campanhas', href: '/dashboard/campaigns', icon: Send },
+  { label: 'Central de Contatos', href: '/dashboard/inbox', icon: Inbox },
+  { label: 'Automações', href: '/dashboard/automations', icon: Clock3 },
+  { label: 'Análises', href: '/dashboard/analytics', icon: BarChart3 },
   { label: 'Favoritos', href: '/dashboard/favorites', icon: Star },
   { label: 'Exportações', href: '/dashboard/exports', icon: Download },
   { label: 'Notificações', href: '/dashboard/notifications', icon: Bell },
@@ -35,13 +41,7 @@ const menuItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useAuthStore();
   const { sidebarOpen, toggleSidebar } = useUIStore();
-
-  const handleLogout = () => {
-    logout();
-    router.push('/auth/login');
-  };
 
   return (
     <>
@@ -94,20 +94,13 @@ export function Sidebar() {
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9">
                   <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                    {user ? getInitials(user.name) : 'U'}
+                    EU
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 truncate">
-                  <p className="text-sm font-medium truncate">{user?.name || 'Usuário'}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  <p className="text-sm font-medium truncate">Uso pessoal</p>
+                  <p className="text-xs text-muted-foreground truncate">Dados neste computador</p>
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive transition-colors"
-                  title="Sair"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
               </div>
             </div>
           </motion.aside>

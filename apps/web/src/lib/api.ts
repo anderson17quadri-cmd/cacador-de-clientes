@@ -36,8 +36,17 @@ api.interceptors.response.use(
       } catch {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login';
+        try {
+          const localResponse = await axios.post(`${API_BASE_URL}/auth/local`);
+          const localSession = localResponse.data.data;
+          localStorage.setItem('accessToken', localSession.accessToken);
+          localStorage.setItem('refreshToken', localSession.refreshToken);
+          originalRequest.headers.Authorization = `Bearer ${localSession.accessToken}`;
+          return api(originalRequest);
+        } catch {
+          if (typeof window !== 'undefined') {
+            window.location.href = '/auth/login';
+          }
         }
       }
     }

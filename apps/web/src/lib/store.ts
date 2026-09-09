@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { UserProfile, Search, Company } from '@leadhunter/types';
+import type { UserProfile, Search } from '@leadhunter/types';
 
 interface AuthState {
   user: UserProfile | null;
@@ -39,7 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 interface SearchState {
   currentSearch: Search | null;
   searchProgress: { progress: number; totalFound: number; totalEnriched: number; status: string } | null;
-  searchLogs: Array<{ message: string; level: string; timestamp: string }>;
+  searchLogs: Array<{ message: string; level: string; timestamp: string; source?: string }>;
   setCurrentSearch: (search: Search | null) => void;
   setSearchProgress: (progress: any) => void;
   addSearchLog: (log: any) => void;

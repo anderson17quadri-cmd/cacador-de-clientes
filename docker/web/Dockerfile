@@ -16,10 +16,12 @@ COPY packages/types/src packages/types/src
 COPY packages/utils/src packages/utils/src
 COPY packages/config/src packages/config/src
 COPY apps/web apps/web
+RUN mkdir -p apps/web/public
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_STANDALONE=true
 
-RUN pnpm build --filter=@leadhunter/web
+RUN pnpm --filter=@leadhunter/web build
 
 FROM node:20-alpine AS runner
 

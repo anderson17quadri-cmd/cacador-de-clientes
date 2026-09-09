@@ -7,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
 import { formatDate } from '@leadhunter/utils';
 import type { ExportRecord } from '@leadhunter/types';
 

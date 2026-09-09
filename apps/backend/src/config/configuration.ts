@@ -1,6 +1,9 @@
 export default () => ({
   port: parseInt(process.env.PORT || '3001', 10),
+  host: process.env.API_HOST || '0.0.0.0',
   nodeEnv: process.env.NODE_ENV || 'development',
+  localPersonalMode: process.env.LOCAL_PERSONAL_MODE === 'true',
+  localUserEmail: process.env.LOCAL_USER_EMAIL || 'pesquisa.local@leadhunter.app',
   database: { url: process.env.DATABASE_URL },
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',

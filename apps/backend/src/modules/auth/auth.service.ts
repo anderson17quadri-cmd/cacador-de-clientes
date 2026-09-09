@@ -14,6 +14,38 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
+  async localSession() {
+    if (!this.config.get<boolean>('localPersonalMode', false)) {
+      throw new NotFoundException('Modo pessoal local não está disponível');
+    }
+
+    const email = this.config.get<string>('localUserEmail', 'pesquisa.local@leadhunter.app');
+    let user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          name: 'Uso pessoal',
+          defaultCountry: 'Portugal',
+          emailVerified: true,
+          lastLoginAt: new Date(),
+        },
+      });
+    } else if (!user.defaultCountry || user.defaultCountry === 'Brasil') {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { defaultCountry: 'Portugal' },
+      });
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken: tokens.refreshToken, lastLoginAt: new Date() },
+    });
+    return { user: this.sanitizeUser(user), ...tokens, localMode: true };
+  }
+
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email já cadastrado');

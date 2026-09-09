@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
 import { ExportsController } from './exports.controller';
 import { ExportsService } from './exports.service';
+import { LocalQueueModule } from '../queue/local-queue.module';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: 'exports' })],
+  imports: [LocalQueueModule],
   controllers: [ExportsController],
   providers: [ExportsService],
   exports: [ExportsService],

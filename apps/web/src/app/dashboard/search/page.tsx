@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,10 +10,10 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
   Search, MapPin, Building2, Target, Play, Loader2,
-  Globe, Phone, Star, Instagram, Mail, Filter,
+  Globe, Phone, Star, Instagram, Mail,
   AlertCircle, CheckCircle2, Clock, ExternalLink, Map,
 } from 'lucide-react';
-import { useSearchStore } from '@/lib/store';
+import { useAuthStore, useSearchStore } from '@/lib/store';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatNumber, getScoreColor, BUSINESS_CATEGORIES, SEARCH_RADIUS_OPTIONS } from '@leadhunter/utils';
 import type { EnrichedCompany } from '@leadhunter/types';
 
@@ -31,7 +30,7 @@ const searchSchema = z.object({
   category: z.string().min(1, 'Selecione uma categoria'),
   city: z.string().optional(),
   state: z.string().optional(),
-  country: z.string().optional().default('Brasil'),
+  country: z.string().optional().default('Portugal'),
   radius: z.number().min(1000).max(100000).default(5000),
 });
 
@@ -39,6 +38,7 @@ type SearchForm = z.infer<typeof searchSchema>;
 
 export default function SearchPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const { currentSearch, searchProgress, searchLogs, setCurrentSearch, setSearchProgress, addSearchLog, clearSearch } = useSearchStore();
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -53,6 +53,11 @@ export default function SearchPage() {
 
   const selectedCategory = watch('category');
   const selectedRadius = watch('radius');
+
+  useEffect(() => {
+    if (user?.defaultCountry) setValue('country', user.defaultCountry);
+    if (user?.defaultRadius) setValue('radius', user.defaultRadius);
+  }, [setValue, user?.defaultCountry, user?.defaultRadius]);
 
   const cancelSearch = useCallback(async () => {
     if (!currentSearch?.id) return;
@@ -179,7 +184,7 @@ export default function SearchPage() {
 
               <div>
                 <label className="text-sm font-medium mb-1.5">País</label>
-                <Input {...register('country')} placeholder="Brasil" defaultValue="Brasil" disabled={loading} />
+                <Input {...register('country')} placeholder="Portugal" defaultValue="Portugal" disabled={loading} />
               </div>
 
               <div className="md:col-span-2">

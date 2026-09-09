@@ -154,6 +154,25 @@ docker-compose logs -f
 docker-compose down
 ```
 
+## Aplicativo Windows
+
+O lançador desktop inicia a pilha Docker, aguarda a API ficar saudável e abre
+o painel em `http://localhost`. Por isso, o computador precisa ter o Docker
+Desktop instalado.
+
+```powershell
+# Gera dist\LeadHunterAI.exe
+.\build_windows.bat
+
+# Baixa atualizações, valida os builds, reconstrói os containers,
+# regenera o executável e instala uma cópia em LocalAppData
+.\ATUALIZAR.bat
+```
+
+Na primeira execução, o lançador cria `.env` a partir de `.env.example` com
+segredos JWT aleatórios. Chaves opcionais como Google Places e OpenAI podem ser
+preenchidas nesse arquivo para habilitar todas as fontes e o enriquecimento.
+
 ### Serviços Docker
 
 | Container | Porta | Descrição |
@@ -249,6 +268,22 @@ Para cada empresa, o sistema captura:
 | GET | `/api/leads` | Listar leads |
 | GET | `/api/leads/premium` | Leads premium |
 | GET | `/api/leads/stats` | Estatísticas |
+
+### Campanhas
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/api/campaigns` | Histórico e progresso |
+| POST | `/api/campaigns/preview` | Contar destinatários por canal |
+| POST | `/api/campaigns` | Criar campanha ou simulação |
+| POST | `/api/campaigns/:id/start` | Iniciar processamento |
+| POST | `/api/campaigns/:id/cancel` | Cancelar processamento |
+| GET/PATCH | `/api/campaigns/config` | Consultar ou salvar integrações |
+| POST | `/api/campaigns/config/test` | Validar SMTP ou WhatsApp Cloud API |
+
+O modo de simulação fica ativo por padrão e não envia mensagens. Para envios reais,
+configure o SMTP e a WhatsApp Cloud API na tela **Campanhas**. O WhatsApp usa um
+modelo aprovado com uma variável no corpo; as credenciais ficam criptografadas no
+diretório de dados local do aplicativo.
 
 ### Favorites
 | Método | Rota | Descrição |
