@@ -10,6 +10,7 @@ import { NominatimService } from '../../services/collectors/nominatim.service';
 import { SearchStatus } from '../../common/types/domain';
 import { getPaginationParams, createPaginationMeta } from '../../common/utils/pagination';
 import { MAX_SEARCH_RADIUS, MAX_CONCURRENT_SEARCHES } from '../../common/constants';
+import { DataSourcesService } from '../data-sources/data-sources.service';
 
 @Injectable()
 export class SearchService {
@@ -21,6 +22,7 @@ export class SearchService {
     @InjectQueue('search') private readonly searchQueue: Queue,
     private readonly googlePlaces: GooglePlacesService,
     private readonly nominatim: NominatimService,
+    private readonly dataSources: DataSourcesService,
   ) {}
 
   async create(userId: string, dto: CreateSearchDto) {
@@ -41,10 +43,10 @@ export class SearchService {
     if (!lat || !lon) {
       const locationStr = [dto.city, dto.state, dto.country].filter(Boolean).join(', ');
       if (dto.postalCode) {
-        const geoData = await this.nominatim.geocodeByPostalCode(dto.postalCode, dto.country);
+        const geoData = await this.dataSources.geocode(userId, [dto.postalCode, dto.country].filter(Boolean).join(', '));
         if (geoData) { lat = geoData.lat; lon = geoData.lon; }
       } else if (locationStr) {
-        const geoData = await this.nominatim.geocode(locationStr);
+        const geoData = await this.dataSources.geocode(userId, locationStr);
         if (geoData) { lat = geoData.lat; lon = geoData.lon; }
       }
     }
@@ -53,6 +55,7 @@ export class SearchService {
       throw new BadRequestException('Não foi possível determinar as coordenadas da localização');
     }
 
+    const resolvedSources = await this.dataSources.resolveSources(userId, dto.sources);
     const search = await this.prisma.search.create({
       data: {
         userId,
@@ -66,7 +69,7 @@ export class SearchService {
         latitude: lat,
         longitude: lon,
         radius: dto.radius || 5000,
-        sources: (dto.sources || ['google_places', 'nominatim']) as any,
+        sources: resolvedSources as any,
         status: SearchStatus.RUNNING,
         startedAt: new Date(),
       },
@@ -81,7 +84,7 @@ export class SearchService {
       longitude: lon,
       category: dto.category,
       radius: dto.radius || 5000,
-      sources: dto.sources || ['google_places', 'nominatim'],
+      sources: resolvedSources,
     });
 
     return search;
@@ -93,7 +96,7 @@ export class SearchService {
       limit: filters.limit,
     });
 
-    const where: any = { userId };
+    const where: any = { userId, NOT: { query: '__INSTAGRAM_MASS__' } };
     if (filters.status) where.status = filters.status;
     if (filters.category) where.category = { contains: filters.category };
     if (filters.city) where.city = { contains: filters.city };

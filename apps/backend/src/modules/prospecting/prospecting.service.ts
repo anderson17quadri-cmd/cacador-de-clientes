@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Interval } from '@nestjs/schedule';
 import axios from 'axios';
 import OpenAI from 'openai';
+import * as PDFDocumentLib from 'pdfkit';
 import { mkdir, readFile, readdir, rename, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
@@ -13,6 +14,9 @@ import {
   CreateAutomationDto, CreateContactEventDto, GenerateMessagesDto,
   UpdateAutomationDto, UpdateLeadCrmDto, ValidateContactsDto,
 } from './dto/prospecting.dto';
+import { SiteStudioService } from '../site-studio/site-studio.service';
+
+const PDFDocument = (PDFDocumentLib as any).default || PDFDocumentLib;
 
 type CrmStatus = 'NEW' | 'CONTACTED' | 'REPLIED' | 'MEETING' | 'PROPOSAL' | 'WON' | 'REJECTED';
 
@@ -35,6 +39,21 @@ export interface LeadState {
   lastContactedAt?: string;
   lastResponseAt?: string;
   updatedAt: string;
+  websiteAudit?: WebsiteAudit;
+}
+
+export interface WebsiteAudit {
+  status: 'MISSING' | 'REACHABLE' | 'UNREACHABLE';
+  score: number;
+  statusCode?: number;
+  responseMs?: number;
+  https: boolean;
+  mobileReady: boolean;
+  hasTitle: boolean;
+  hasDescription: boolean;
+  hasContactAction: boolean;
+  findings: string[];
+  checkedAt: string;
 }
 
 export interface ContactEvent {
@@ -68,6 +87,7 @@ export class ProspectingService {
     private readonly searches: SearchService,
     private readonly notifications: NotificationsService,
     config: ConfigService,
+    private readonly siteStudio?: SiteStudioService,
   ) {
     const deepseek = config.get<string>('DEEPSEEK_API_KEY');
     const openai = config.get<string>('openai.apiKey');
@@ -123,7 +143,10 @@ export class ProspectingService {
         include: { enrichedData: true },
       }),
     ]);
-    const leads = companies.map((company) => ({ ...company, crm: this.state(company.id, data.leads[company.id]) }));
+    const leads = companies.map((company) => {
+      const crm = this.state(company.id, data.leads[company.id]);
+      return { ...company, crm, opportunity: this.opportunity(company, crm) };
+    }).sort((a, b) => b.opportunity.score - a.opportunity.score);
     const counts = leads.reduce((acc: Record<string, number>, lead) => {
       acc[lead.crm.status] = (acc[lead.crm.status] || 0) + 1; return acc;
     }, {});
@@ -220,6 +243,134 @@ export class ProspectingService {
     }, {});
     await this.notifications.create(userId, 'Validação concluída', `${results.length} contatos verificados.`, 'success', summary);
     return { total: results.length, summary, results };
+  }
+
+  private opportunity(company: any, crm: LeadState) {
+    let score = 10;
+    const reasons: string[] = [];
+    if (!company.hasWebsite || !company.website) { score += 35; reasons.push('Não possui site próprio'); }
+    else if (crm.websiteAudit && crm.websiteAudit.score < 65) { score += 22; reasons.push('Site precisa de melhorias'); }
+    if (!company.hasInstagram) { score += 10; reasons.push('Instagram não identificado'); }
+    if (company.hasWhatsapp || company.whatsapp) { score += 18; reasons.push('WhatsApp disponível para abordagem'); }
+    else if (company.hasEmail || company.email || company.phone) { score += 12; reasons.push('Possui contacto público'); }
+    if ((company.rating || 0) >= 4) { score += 8; reasons.push('Boa reputação pública'); }
+    if ((company.totalRatings || 0) >= 10) score += 5;
+    if (crm.validity === 'VALID') score += 5;
+    if (crm.doNotContact || crm.status === 'REJECTED' || crm.status === 'WON') score = 0;
+    score = Math.min(100, Math.max(0, score));
+    const priority = score >= 65 ? 'HIGH' : score >= 50 ? 'MEDIUM' : 'LOW';
+    const recommendedAction = !company.website ? 'Criar demonstração de landing page'
+      : crm.websiteAudit?.score && crm.websiteAudit.score < 65 ? 'Preparar proposta de modernização'
+      : company.hasWhatsapp ? 'Preparar mensagem personalizada' : 'Validar contactos antes da abordagem';
+    return { score, priority, reasons, recommendedAction };
+  }
+
+  private async auditCompanyWebsite(company: any): Promise<WebsiteAudit> {
+    const checkedAt = new Date().toISOString();
+    if (!company.website) return {
+      status: 'MISSING', score: 0, https: false, mobileReady: false, hasTitle: false,
+      hasDescription: false, hasContactAction: false, findings: ['Empresa sem site próprio'], checkedAt,
+    };
+    const started = Date.now();
+    try {
+      const response = await axios.get(company.website, {
+        timeout: 12000, maxRedirects: 5, validateStatus: () => true,
+        maxContentLength: 3 * 1024 * 1024,
+        headers: { 'User-Agent': 'Mozilla/5.0 LeadHunter-SiteAudit/1.0' }, responseType: 'text',
+      });
+      const html = String(response.data || '');
+      const https = String(response.request?.res?.responseUrl || company.website).startsWith('https://');
+      const mobileReady = /<meta[^>]+name=["']viewport["']/i.test(html);
+      const hasTitle = /<title[^>]*>\s*[^<]{3,}/i.test(html);
+      const hasDescription = /<meta[^>]+name=["']description["'][^>]+content=["'][^"']{20,}/i.test(html)
+        || /<meta[^>]+content=["'][^"']{20,}["'][^>]+name=["']description["']/i.test(html);
+      const hasContactAction = /(wa\.me|whatsapp|mailto:|tel:|contacto|contato|reservar|marcar)/i.test(html);
+      const responseMs = Date.now() - started;
+      const findings: string[] = [];
+      let score = response.status >= 200 && response.status < 400 ? 100 : 25;
+      if (!https) { score -= 20; findings.push('Sem HTTPS'); }
+      if (!mobileReady) { score -= 25; findings.push('Sem configuração clara para telemóvel'); }
+      if (!hasTitle) { score -= 10; findings.push('Título da página ausente ou fraco'); }
+      if (!hasDescription) { score -= 10; findings.push('Descrição para motores de pesquisa ausente'); }
+      if (!hasContactAction) { score -= 15; findings.push('Sem ação de contacto evidente'); }
+      if (responseMs > 3000) { score -= 15; findings.push(`Resposta lenta (${(responseMs / 1000).toFixed(1)} s)`); }
+      if (!findings.length) findings.push('Estrutura técnica essencial encontrada');
+      return { status: response.status >= 200 && response.status < 400 ? 'REACHABLE' : 'UNREACHABLE', score: Math.max(0, score), statusCode: response.status, responseMs, https, mobileReady, hasTitle, hasDescription, hasContactAction, findings, checkedAt };
+    } catch {
+      return { status: 'UNREACHABLE', score: 0, responseMs: Date.now() - started, https: company.website.startsWith('https://'), mobileReady: false, hasTitle: false, hasDescription: false, hasContactAction: false, findings: ['Site indisponível durante a verificação'], checkedAt };
+    }
+  }
+
+  async auditWebsites(userId: string, companyIds: string[]) {
+    const companies = await this.prisma.company.findMany({ where: { id: { in: companyIds }, search: { userId } }, include: { enrichedData: true }, take: 50 });
+    if (!companies.length) throw new BadRequestException('Selecione pelo menos uma empresa.');
+    const data = await this.load(userId);
+    const results: Array<{ companyId: string; companyName: string; audit: WebsiteAudit }> = [];
+    for (let index = 0; index < companies.length; index += 5) {
+      const group = companies.slice(index, index + 5);
+      const audits = await Promise.all(group.map(async (company) => ({ company, audit: await this.auditCompanyWebsite(company) })));
+      for (const { company, audit } of audits) {
+        data.leads[company.id] = { ...this.state(company.id, data.leads[company.id]), websiteAudit: audit, updatedAt: new Date().toISOString() };
+        results.push({ companyId: company.id, companyName: company.name, audit });
+        if (company.enrichedData) await this.prisma.enrichedData.update({ where: { companyId: company.id }, data: { hasModernWebsite: audit.score >= 70, needsNewWebsite: audit.score < 65 } });
+      }
+      await this.save(userId, data);
+    }
+    return { total: results.length, results };
+  }
+
+  async commercialPack(userId: string, companyId: string) {
+    const company = await this.ownedCompany(userId, companyId);
+    const data = await this.load(userId);
+    let crm = this.state(companyId, data.leads[companyId]);
+    if (!crm.websiteAudit) {
+      crm = { ...crm, websiteAudit: await this.auditCompanyWebsite(company), updatedAt: new Date().toISOString() };
+      data.leads[companyId] = crm;
+      await this.save(userId, data);
+    }
+    const opportunity = this.opportunity(company, crm);
+    const generated = await this.generateMessages(userId, { companyIds: [companyId], offer: 'criação e melhoria de sites e presença digital', tone: 'profissional, breve e cordial' });
+    let siteProject: any = null;
+    if (this.siteStudio) {
+      const projects = await this.siteStudio.list(userId);
+      siteProject = projects.find((project: any) => project.companyId === companyId) || null;
+      if (!siteProject) {
+        const category = String(company.category || '').toLowerCase();
+        const template = /(restaurante|cafe|pastelaria|padaria|comida)/.test(category) ? 'restaurant' : /(advog|contab|consult|clinica)/.test(category) ? 'professional' : 'local';
+        siteProject = await this.siteStudio.create(userId, { companyId, objective: 'contacts', template, services: [], extraInfo: 'Demonstração comercial preparada pelo LeadHunter.' });
+        const generatedSite = await this.siteStudio.generate(userId, siteProject.id);
+        siteProject = generatedSite.project;
+      }
+    }
+    return {
+      company: { id: company.id, name: company.name, category: company.category, city: company.city, website: company.website, instagram: company.instagram, whatsapp: company.whatsapp, email: company.email },
+      opportunity, audit: crm.websiteAudit, message: generated.messages[0]?.message || '', messageMode: generated.mode,
+      siteProject,
+      checklist: ['Rever a demonstração', 'Confirmar os dados públicos da empresa', 'Personalizar a mensagem', 'Enviar somente após aprovação'],
+    };
+  }
+
+  async commercialPackPdf(userId: string, companyId: string) {
+    const pack = await this.commercialPack(userId, companyId);
+    const chunks: Buffer[] = [];
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    const done = new Promise<Buffer>((resolve) => doc.on('end', () => resolve(Buffer.concat(chunks))));
+    doc.fillColor('#6d28d9').fontSize(22).text('LeadHunter · Proposta comercial');
+    doc.moveDown().fillColor('#111827').fontSize(18).text(pack.company.name);
+    doc.fontSize(10).fillColor('#4b5563').text(`${pack.company.category || 'Empresa'} · ${pack.company.city || 'Localização não informada'}`);
+    doc.moveDown().fillColor('#111827').fontSize(14).text(`Oportunidade: ${pack.opportunity.score}/100`);
+    doc.fontSize(10).text(pack.opportunity.reasons.join(' · ') || 'Sem sinais suficientes.');
+    doc.moveDown().fontSize(14).text('Auditoria digital');
+    doc.fontSize(10).text(`Site: ${pack.audit?.status || 'não verificado'} · Nota: ${pack.audit?.score ?? 0}/100`);
+    for (const finding of pack.audit?.findings || []) doc.text(`• ${finding}`);
+    doc.moveDown().fontSize(14).text('Mensagem sugerida');
+    doc.fontSize(10).text(pack.message || 'Mensagem ainda não preparada.', { align: 'left' });
+    doc.moveDown().fontSize(9).fillColor('#6b7280').text('Rascunho para revisão. Nenhuma mensagem foi enviada e nenhuma página foi publicada automaticamente.');
+    doc.end();
+    const buffer = await done;
+    const safe = String(pack.company.name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+    return { buffer, fileName: `proposta-${safe || 'cliente'}.pdf` };
   }
 
   async addEvent(userId: string, dto: CreateContactEventDto) {

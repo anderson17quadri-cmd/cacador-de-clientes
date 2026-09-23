@@ -83,6 +83,7 @@ def main() -> None:
     run([PNPM, "--filter", "@leadhunter/backend", "build"], ROOT)
     web_env = os.environ.copy()
     web_env.pop("NEXT_STANDALONE", None)
+    web_env["NEXT_PUBLIC_API_URL"] = "http://127.0.0.1:38741/api"
     run([PNPM, "--filter", "@leadhunter/web", "build"], ROOT, web_env)
 
     STAGING = Path(tempfile.mkdtemp(prefix="leadhunter-runtime-", dir=DESKTOP))

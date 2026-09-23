@@ -20,6 +20,9 @@ import { HealthController } from './health.controller';
 import { LocalQueueModule } from './modules/queue/local-queue.module';
 import { CampaignsModule } from './modules/campaigns/campaigns.module';
 import { ProspectingModule } from './modules/prospecting/prospecting.module';
+import { InstagramMassModule } from './modules/instagram-mass/instagram-mass.module';
+import { SiteStudioModule } from './modules/site-studio/site-studio.module';
+import { DataSourcesModule } from './modules/data-sources/data-sources.module';
 
 @Module({
   imports: [
@@ -44,6 +47,7 @@ import { ProspectingModule } from './modules/prospecting/prospecting.module';
     LocalQueueModule,
     ScheduleModule.forRoot(),
     PrismaModule,
+    DataSourcesModule,
     AuthModule,
     UsersModule,
     CompaniesModule,
@@ -56,6 +60,8 @@ import { ProspectingModule } from './modules/prospecting/prospecting.module';
     NotificationsModule,
     CampaignsModule,
     ProspectingModule,
+    InstagramMassModule,
+    SiteStudioModule,
   ],
   controllers: [HealthController],
   providers: [

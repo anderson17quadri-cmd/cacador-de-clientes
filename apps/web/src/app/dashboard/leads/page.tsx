@@ -4,9 +4,23 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
-  Users, Search, Star, Download,
-  Globe, Instagram, Phone, Mail, MapPin,
-  Loader2, SlidersHorizontal, X, ChevronLeft, ChevronRight, MessageCircle, CheckSquare,
+  Users,
+  Search,
+  Star,
+  Download,
+  Globe,
+  Instagram,
+  Phone,
+  Mail,
+  MapPin,
+  Loader2,
+  SlidersHorizontal,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle,
+  CheckSquare,
+  WandSparkles,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -33,7 +47,11 @@ function instagramUrl(value: string) {
 }
 
 function instagramHandle(value: string) {
-  return value.trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').replace(/\/$/, '');
+  return value
+    .trim()
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+    .replace(/^@/, '')
+    .replace(/\/$/, '');
 }
 
 export default function LeadsPage() {
@@ -123,13 +141,15 @@ export default function LeadsPage() {
   }, [search, filters]);
 
   const whatsappLeadsOnPage = leads.filter((lead) => Boolean(lead.whatsapp || lead.phone));
-  const allPageWhatsappSelected = whatsappLeadsOnPage.length > 0
-    && whatsappLeadsOnPage.every((lead) => selectedWhatsappIds.has(lead.id));
+  const allPageWhatsappSelected =
+    whatsappLeadsOnPage.length > 0 &&
+    whatsappLeadsOnPage.every((lead) => selectedWhatsappIds.has(lead.id));
 
   const toggleWhatsappLead = useCallback((id: string) => {
     setSelectedWhatsappIds((old) => {
       const next = new Set(old);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }, []);
@@ -138,7 +158,9 @@ export default function LeadsPage() {
     setSelectedWhatsappIds((old) => {
       const next = new Set(old);
       const shouldSelect = whatsappLeadsOnPage.some((lead) => !next.has(lead.id));
-      whatsappLeadsOnPage.forEach((lead) => shouldSelect ? next.add(lead.id) : next.delete(lead.id));
+      whatsappLeadsOnPage.forEach((lead) =>
+        shouldSelect ? next.add(lead.id) : next.delete(lead.id),
+      );
       return next;
     });
   }, [whatsappLeadsOnPage]);
@@ -186,7 +208,11 @@ export default function LeadsPage() {
             Filtros
           </Button>
           <Button onClick={handleExport} disabled={exporting || total === 0}>
-            {exporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            {exporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
             Exportar
           </Button>
         </div>
@@ -204,14 +230,19 @@ export default function LeadsPage() {
           />
           {searchInput && (
             <button
-              onClick={() => { setSearchInput(''); setSearch(''); }}
+              onClick={() => {
+                setSearchInput('');
+                setSearch('');
+              }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
-        <Button variant="outline" onClick={handleSearch}>Buscar</Button>
+        <Button variant="outline" onClick={handleSearch}>
+          Buscar
+        </Button>
 
         <div className="flex flex-wrap gap-2">
           {quickFilters.map((f) => (
@@ -238,7 +269,9 @@ export default function LeadsPage() {
             <CardContent className="p-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Score mínimo</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    Score mínimo
+                  </label>
                   <select
                     className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm"
                     value={filters.minScore || ''}
@@ -255,9 +288,20 @@ export default function LeadsPage() {
                   </select>
                 </div>
               </div>
-              {(filters.hasWebsite || filters.hasInstagram || filters.hasWhatsapp || filters.hasEmail || filters.minScore) && (
+              {(filters.hasWebsite ||
+                filters.hasInstagram ||
+                filters.hasWhatsapp ||
+                filters.hasEmail ||
+                filters.minScore) && (
                 <div className="mt-3 flex gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => { setFilters({}); setPage(1); }}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setFilters({});
+                      setPage(1);
+                    }}
+                  >
                     <X className="h-3 w-3 mr-1" /> Limpar filtros
                   </Button>
                 </div>
@@ -271,14 +315,20 @@ export default function LeadsPage() {
         <div className="lg:col-span-2 space-y-3">
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => (
-              <Card key={i}><CardContent className="p-4"><Skeleton className="h-24 w-full" /></CardContent></Card>
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <Skeleton className="h-24 w-full" />
+                </CardContent>
+              </Card>
             ))
           ) : leads.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Nenhum lead encontrado</h3>
-                <p className="text-muted-foreground mb-4">Faça uma pesquisa para encontrar empresas</p>
+                <p className="text-muted-foreground mb-4">
+                  Faça uma pesquisa para encontrar empresas
+                </p>
                 <a href="/dashboard/search">
                   <Button>
                     <Search className="h-4 w-4 mr-2" /> Nova Pesquisa
@@ -292,21 +342,44 @@ export default function LeadsPage() {
                 {formatNumber(total)} leads encontrados
               </p>
               <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3">
-                <Button variant="outline" size="sm" onClick={togglePageWhatsapp} disabled={!whatsappLeadsOnPage.length}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={togglePageWhatsapp}
+                  disabled={!whatsappLeadsOnPage.length}
+                >
                   <CheckSquare className="mr-2 h-4 w-4" />
                   {allPageWhatsappSelected ? 'Desmarcar página' : 'Selecionar WhatsApp da página'}
                 </Button>
-                <Button variant="outline" size="sm" onClick={selectAllWhatsapp} disabled={selectingAll}>
-                  {selectingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckSquare className="mr-2 h-4 w-4" />}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAllWhatsapp}
+                  disabled={selectingAll}
+                >
+                  {selectingAll ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckSquare className="mr-2 h-4 w-4" />
+                  )}
                   Selecionar todos com WhatsApp
                 </Button>
                 {selectedWhatsappIds.size > 0 && (
                   <>
-                    <span className="text-sm font-medium">{selectedWhatsappIds.size} selecionados</span>
+                    <span className="text-sm font-medium">
+                      {selectedWhatsappIds.size} selecionados
+                    </span>
                     <Button size="sm" onClick={createWhatsappCampaign}>
-                      <MessageCircle className="mr-2 h-4 w-4" />Criar campanha WhatsApp
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Criar campanha WhatsApp
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedWhatsappIds(new Set())}>Limpar</Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedWhatsappIds(new Set())}
+                    >
+                      Limpar
+                    </Button>
                   </>
                 )}
               </div>
@@ -339,7 +412,12 @@ export default function LeadsPage() {
                             )}
                             <h3 className="font-semibold truncate">{lead.name}</h3>
                             {lead.enrichedData?.qualityScore ? (
-                              <span className={cn('shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-white', getScoreColor(lead.enrichedData.qualityScore))}>
+                              <span
+                                className={cn(
+                                  'shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold text-white',
+                                  getScoreColor(lead.enrichedData.qualityScore),
+                                )}
+                              >
                                 {lead.enrichedData.qualityScore}
                               </span>
                             ) : null}
@@ -349,12 +427,14 @@ export default function LeadsPage() {
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                             {lead.city && (
                               <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" /> {lead.city}{lead.state ? `/${lead.state}` : ''}
+                                <MapPin className="h-3 w-3" /> {lead.city}
+                                {lead.state ? `/${lead.state}` : ''}
                               </span>
                             )}
                             {lead.rating && (
                               <span className="flex items-center gap-1">
-                                <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> {lead.rating}
+                                <Star className="h-3 w-3 fill-amber-500 text-amber-500" />{' '}
+                                {lead.rating}
                               </span>
                             )}
                             {lead.phone && (
@@ -364,30 +444,59 @@ export default function LeadsPage() {
                             )}
                           </div>
 
-                          <div className="flex flex-wrap gap-1.5 mt-2" onClick={(e) => e.stopPropagation()}>
+                          <div
+                            className="flex flex-wrap gap-1.5 mt-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {lead.phone && (
-                              <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-[11px] font-medium px-2 py-1">
-                                <Phone className="h-3 w-3" />WhatsApp
+                              <a
+                                href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-[11px] font-medium px-2 py-1"
+                              >
+                                <Phone className="h-3 w-3" />
+                                WhatsApp
                               </a>
                             )}
                             {lead.phone && (
-                              <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium px-2 py-1">
-                                <Phone className="h-3 w-3" />Ligar
+                              <a
+                                href={`tel:${lead.phone}`}
+                                className="inline-flex items-center gap-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium px-2 py-1"
+                              >
+                                <Phone className="h-3 w-3" />
+                                Ligar
                               </a>
                             )}
                             {lead.instagram && (
-                              <a href={instagramUrl(lead.instagram)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-pink-600 hover:bg-pink-700 text-white text-[11px] font-medium px-2 py-1">
-                                <Instagram className="h-3 w-3" />Instagram
+                              <a
+                                href={instagramUrl(lead.instagram)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 rounded-md bg-pink-600 hover:bg-pink-700 text-white text-[11px] font-medium px-2 py-1"
+                              >
+                                <Instagram className="h-3 w-3" />
+                                Instagram
                               </a>
                             )}
                             {lead.website && (
-                              <a href={lead.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-gray-600 hover:bg-gray-700 text-white text-[11px] font-medium px-2 py-1">
-                                <Globe className="h-3 w-3" />Site
+                              <a
+                                href={lead.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 rounded-md bg-gray-600 hover:bg-gray-700 text-white text-[11px] font-medium px-2 py-1"
+                              >
+                                <Globe className="h-3 w-3" />
+                                Site
                               </a>
                             )}
                             {lead.email && (
-                              <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 rounded-md bg-gray-600 hover:bg-gray-700 text-white text-[11px] font-medium px-2 py-1">
-                                <Mail className="h-3 w-3" />Email
+                              <a
+                                href={`mailto:${lead.email}`}
+                                className="inline-flex items-center gap-1 rounded-md bg-gray-600 hover:bg-gray-700 text-white text-[11px] font-medium px-2 py-1"
+                              >
+                                <Mail className="h-3 w-3" />
+                                Email
                               </a>
                             )}
                           </div>
@@ -402,13 +511,23 @@ export default function LeadsPage() {
 
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-4">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm text-muted-foreground">
                 {page} de {totalPages}
               </span>
-              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage(page + 1)}
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -422,7 +541,10 @@ export default function LeadsPage() {
                 <CardContent className="p-4 space-y-4">
                   <div className="flex items-start justify-between">
                     <h3 className="font-semibold text-lg">{selectedLead.name}</h3>
-                    <button onClick={() => setSelectedLead(null)} className="text-muted-foreground hover:text-foreground">
+                    <button
+                      onClick={() => setSelectedLead(null)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
@@ -443,27 +565,43 @@ export default function LeadsPage() {
                       </div>
                     )}
                     {selectedLead.phone && (
-                      <a href={`tel:${selectedLead.phone}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <a
+                        href={`tel:${selectedLead.phone}`}
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
                         <Phone className="h-4 w-4 shrink-0" />
                         {selectedLead.phone}
                       </a>
                     )}
                     {selectedLead.email && (
-                      <a href={`mailto:${selectedLead.email}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <a
+                        href={`mailto:${selectedLead.email}`}
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
                         <Mail className="h-4 w-4 shrink-0" />
                         {selectedLead.email}
                       </a>
                     )}
                     {selectedLead.website && (
-                      <a href={selectedLead.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                      <a
+                        href={selectedLead.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
                         <Globe className="h-4 w-4 shrink-0" />
                         {selectedLead.website}
                       </a>
                     )}
                     {selectedLead.instagram && (
-                      <a href={instagramUrl(selectedLead.instagram)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                        <Instagram className="h-4 w-4 shrink-0" />
-                        @{instagramHandle(selectedLead.instagram)}
+                      <a
+                        href={instagramUrl(selectedLead.instagram)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
+                        <Instagram className="h-4 w-4 shrink-0" />@
+                        {instagramHandle(selectedLead.instagram)}
                       </a>
                     )}
                   </div>
@@ -477,15 +615,30 @@ export default function LeadsPage() {
                         { label: 'Novo Site', val: selectedLead.enrichedData.needsNewWebsite },
                         { label: 'Tráfego Pago', val: selectedLead.enrichedData.needsPaidTraffic },
                       ].map((item) => (
-                        <div key={item.label} className={cn(
-                          'p-2 rounded-lg text-xs font-medium text-center',
-                          item.val ? 'bg-amber-500/10 text-amber-600' : 'bg-emerald-500/10 text-emerald-600',
-                        )}>
+                        <div
+                          key={item.label}
+                          className={cn(
+                            'p-2 rounded-lg text-xs font-medium text-center',
+                            item.val
+                              ? 'bg-amber-500/10 text-amber-600'
+                              : 'bg-emerald-500/10 text-emerald-600',
+                          )}
+                        >
                           {item.val ? 'Precisa' : 'OK'} - {item.label}
                         </div>
                       ))}
                     </div>
                   )}
+
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      localStorage.setItem('siteStudioCompanyId', selectedLead.id);
+                      router.push('/dashboard/site-studio');
+                    }}
+                  >
+                    <WandSparkles className="mr-2 h-4 w-4" /> Criar site com IA
+                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
@@ -493,7 +646,9 @@ export default function LeadsPage() {
             <Card>
               <CardContent className="p-8 text-center">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-sm text-muted-foreground">Selecione um lead para ver os detalhes</p>
+                <p className="text-sm text-muted-foreground">
+                  Selecione um lead para ver os detalhes
+                </p>
               </CardContent>
             </Card>
           )}

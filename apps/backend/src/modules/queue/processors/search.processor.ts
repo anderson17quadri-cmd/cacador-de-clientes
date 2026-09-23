@@ -12,6 +12,7 @@ import { WebsiteEnricherService } from '../../../services/collectors/website-enr
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../../database/prisma.service';
+import { DataSourcesService } from '../../data-sources/data-sources.service';
 
 @Processor('search')
 export class SearchProcessor extends WorkerHost {
@@ -27,6 +28,7 @@ export class SearchProcessor extends WorkerHost {
     private readonly yelp: YelpService,
     private readonly websiteEnricher: WebsiteEnricherService,
     private readonly prisma: PrismaService,
+    private readonly dataSources: DataSourcesService,
     @InjectQueue('enrichment') private readonly enrichmentQueue: Queue,
   ) {
     super();
@@ -64,6 +66,10 @@ export class SearchProcessor extends WorkerHost {
             case 'yelp':
               results = await this.yelp.searchPlaces(latitude, longitude, radius, category);
               break;
+            case 'locationiq':
+            case 'mapbox':
+              results = await this.dataSources.searchPlaces(userId, source, latitude, longitude, radius, category);
+              break;
           }
 
           await this.searchService.addLog(searchId, `${results.length} resultados de ${source}`, 'info', source);
@@ -87,13 +93,11 @@ export class SearchProcessor extends WorkerHost {
 
       await this.searchService.addLog(searchId, 'Contactos enriquecidos. Iniciando análise IA...', 'info', 'system');
 
-      if (allCompanies.length > 0) {
-        await this.enrichmentQueue.add('enrich-companies', {
-          searchId,
-          userId,
-          companyIds: allCompanies.map((c: any) => c.id),
-        });
-      }
+      await this.enrichmentQueue.add('enrich-companies', {
+        searchId,
+        userId,
+        companyIds: allCompanies.map((c: any) => c.id),
+      });
 
       await this.searchService.updateProgress(searchId, { progress: 55 });
       await this.searchService.addLog(searchId, 'Pesquisa concluída. Enriquecimento em progresso.', 'success', 'system');

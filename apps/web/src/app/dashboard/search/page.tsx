@@ -95,7 +95,7 @@ export default function SearchPage() {
     clearSearch();
 
     try {
-      const res = await api.post('/search', { ...data, sources: ['nominatim', 'overpass', 'google_places'] });
+      const res = await api.post('/search', data);
       const search = res.data.data;
       setCurrentSearch(search);
       toast.success('Pesquisa iniciada!');

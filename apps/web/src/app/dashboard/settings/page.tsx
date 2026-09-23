@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { Bell, CheckCircle2, KeyRound, Loader2, Palette, Search, User } from 'lucide-react';
+import { Bell, CheckCircle2, Database, KeyRound, Loader2, Palette, Search, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,17 @@ interface SettingsData {
   searchNotifications: boolean;
   defaultRadius: number;
   defaultCountry: string;
+}
+
+interface DataProvider {
+  id: string;
+  name: string;
+  purpose: string;
+  keyRequired: boolean;
+  configured: boolean;
+  enabled: boolean;
+  recommended: boolean;
+  note: string;
 }
 
 const defaultSettings: SettingsData = {
@@ -65,10 +76,12 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [providers, setProviders] = useState<DataProvider[]>([]);
+  const [sourceKeys, setSourceKeys] = useState({ locationIqKey: '', mapboxToken: '', openCageKey: '', googlePlacesKey: '' });
 
   useEffect(() => {
-    Promise.all([api.get('/auth/me'), api.get('/users/settings')])
-      .then(([profileResponse, settingsResponse]) => {
+    Promise.all([api.get('/auth/me'), api.get('/users/settings'), api.get('/data-sources')])
+      .then(([profileResponse, settingsResponse, sourcesResponse]) => {
         const profile = profileResponse.data.data;
         const savedSettings = settingsResponse.data.data as SettingsData;
         setName(profile.name);
@@ -76,6 +89,7 @@ export default function SettingsPage() {
         setSettings(savedSettings);
         setTheme(savedSettings.theme);
         updateUser({ ...profile, ...savedSettings });
+        setProviders(sourcesResponse.data.data.providers || []);
       })
       .catch(() => setNotice({ type: 'error', text: 'Não foi possível carregar as configurações.' }))
       .finally(() => setLoading(false));
@@ -135,6 +149,35 @@ export default function SettingsPage() {
     } finally {
       setSaving(null);
     }
+  };
+
+  const sourceField = (id: string) => id === 'locationiq' ? 'locationIqKey'
+    : id === 'mapbox' ? 'mapboxToken' : id === 'opencage' ? 'openCageKey' : 'googlePlacesKey';
+
+  const saveSources = async () => {
+    setSaving('sources'); setNotice(null);
+    try {
+      const toggles = Object.fromEntries(providers.filter((item) => item.keyRequired).map((item) => [
+        item.id === 'locationiq' ? 'locationIqEnabled' : item.id === 'mapbox' ? 'mapboxEnabled' : item.id === 'opencage' ? 'openCageEnabled' : 'googlePlacesEnabled',
+        item.enabled,
+      ]));
+      const response = await api.patch('/data-sources', { ...toggles, ...Object.fromEntries(Object.entries(sourceKeys).filter(([, value]) => value.trim())) });
+      setProviders(response.data.data.providers || []);
+      setSourceKeys({ locationIqKey: '', mapboxToken: '', openCageKey: '', googlePlacesKey: '' });
+      setNotice({ type: 'success', text: 'Fontes de dados guardadas com as chaves cifradas.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: errorText(error, 'Não foi possível guardar as fontes.') });
+    } finally { setSaving(null); }
+  };
+
+  const testSource = async (provider: string) => {
+    setSaving(`test-${provider}`); setNotice(null);
+    try {
+      const response = await api.post('/data-sources/test', { provider });
+      setNotice({ type: 'success', text: `${providers.find((item) => item.id === provider)?.name}: ligação confirmada em ${response.data.data.latencyMs} ms.` });
+    } catch (error) {
+      setNotice({ type: 'error', text: errorText(error, 'A fonte não respondeu corretamente.') });
+    } finally { setSaving(null); }
   };
 
   if (loading) {
@@ -218,6 +261,34 @@ export default function SettingsPage() {
       </div>
 
       <div className="flex justify-end"><Button size="lg" onClick={saveSettings} disabled={saving !== null}>{saving === 'settings' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Salvar preferências</Button></div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-primary/10 p-2"><Database className="h-5 w-5 text-primary" /></div>
+            <div><h2 className="font-semibold">Fontes de dados</h2><p className="text-sm text-muted-foreground">O app escolhe automaticamente as fontes ativas em cada pesquisa</p></div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {providers.map((provider) => {
+            const field = sourceField(provider.id) as keyof typeof sourceKeys;
+            return <div key={provider.id} className="rounded-xl border p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2"><strong>{provider.name}</strong>{provider.recommended && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">Recomendada</span>}<span className={`rounded-full px-2 py-0.5 text-xs ${provider.enabled ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>{provider.enabled ? 'Ativa' : provider.configured ? 'Desativada' : 'Sem chave'}</span></div>
+                  <p className="mt-1 text-sm">{provider.purpose}</p><p className="mt-1 text-xs text-muted-foreground">{provider.note}</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => testSource(provider.id)} disabled={saving !== null || (provider.keyRequired && !provider.configured)}>{saving === `test-${provider.id}` && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}Testar</Button>
+              </div>
+              {provider.keyRequired && <div className="mt-3 flex flex-wrap gap-3">
+                <Input className="min-w-64 flex-1" type="password" placeholder={provider.configured ? 'Chave configurada — deixe vazio para manter' : 'Cole a chave da API'} value={sourceKeys[field]} onChange={(event) => setSourceKeys((old) => ({ ...old, [field]: event.target.value }))} />
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={provider.enabled} onChange={(event) => setProviders((old) => old.map((item) => item.id === provider.id ? { ...item, enabled: event.target.checked } : item))} />Usar nas pesquisas</label>
+              </div>}
+            </div>;
+          })}
+          <div className="flex justify-end"><Button onClick={saveSources} disabled={saving !== null}>{saving === 'sources' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Guardar fontes</Button></div>
+        </CardContent>
+      </Card>
 
       {!personalMode && <Card>
         <CardHeader>

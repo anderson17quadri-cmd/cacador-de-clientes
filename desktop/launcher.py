@@ -22,9 +22,11 @@ from pathlib import Path
 
 APP_NAME = "LeadHunter AI"
 APP_USER_MODEL_ID = "LeadHunterAI.Desktop"
-APP_URL = "http://127.0.0.1:3000/dashboard"
-WEB_HEALTH_URL = "http://127.0.0.1:3000/"
-API_HEALTH_URL = "http://127.0.0.1:3001/health"
+WEB_PORT = 38740
+API_PORT = 38741
+APP_URL = f"http://127.0.0.1:{WEB_PORT}/dashboard"
+WEB_HEALTH_URL = f"http://127.0.0.1:{WEB_PORT}/"
+API_HEALTH_URL = f"http://127.0.0.1:{API_PORT}/health"
 CREATE_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 PROCESSES: list[subprocess.Popen[bytes]] = []
 LOG_HANDLES: list[object] = []
@@ -162,12 +164,15 @@ def extract_runtime(data_dir: Path, set_status) -> Path:
     runtime_parent = runtime_root.parent
     runtime_parent.mkdir(parents=True, exist_ok=True)
     staging = runtime_parent / f"{digest}.installing"
+    staging_marker = staging / ".ready"
+    if staging_marker.is_file():
+        return staging
     if staging.exists():
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
     with zipfile.ZipFile(archive) as package:
         package.extractall(staging)
-    (staging / ".ready").write_text(digest, encoding="ascii")
+    staging_marker.write_text(digest, encoding="ascii")
     if runtime_root.exists():
         shutil.rmtree(runtime_root)
     staging.replace(runtime_root)
@@ -253,7 +258,7 @@ def prepare_services(set_status) -> None:
         backend_env = common_env.copy()
         backend_env.update(
             {
-                "PORT": "3001",
+                "PORT": str(API_PORT),
                 "API_HOST": "127.0.0.1",
                 "LOCAL_PERSONAL_MODE": "true",
                 "LOCAL_USER_EMAIL": "pesquisa.local@leadhunter.app",
@@ -262,7 +267,7 @@ def prepare_services(set_status) -> None:
                 "JWT_REFRESH_SECRET": secrets_config["refreshSecret"],
                 "APP_ENCRYPTION_KEY": secrets_config["encryptionSecret"],
                 "LEADHUNTER_DATA_DIR": str(data_dir),
-                "CORS_ORIGINS": "http://127.0.0.1:3000",
+                "CORS_ORIGINS": f"http://127.0.0.1:{WEB_PORT}",
             }
         )
         backend_process = start_process(
@@ -274,19 +279,19 @@ def prepare_services(set_status) -> None:
         )
         wait_for_url(API_HEALTH_URL, backend_process, 90)
 
-    if not port_ready(3000):
+    if not port_ready(WEB_PORT):
         set_status("Iniciando a interface do aplicativo...")
         web_env = common_env.copy()
-        web_env.update({"PORT": "3000", "HOSTNAME": "127.0.0.1"})
+        web_env.update({"PORT": str(WEB_PORT), "HOSTNAME": "127.0.0.1"})
         web_process = start_process(
             node,
             web / "node_modules" / "next" / "dist" / "bin" / "next",
             web,
             web_env,
             logs / "web.log",
-            ["start", "-H", "127.0.0.1", "-p", "3000"],
+            ["start", "-H", "127.0.0.1", "-p", str(WEB_PORT)],
         )
-        wait_for_port(3000, web_process, 60)
+        wait_for_port(WEB_PORT, web_process, 60)
 
 
 def show_error(message: str) -> None:

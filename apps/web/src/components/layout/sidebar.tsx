@@ -7,35 +7,43 @@ import {
   LayoutDashboard,
   Search,
   Users,
-  Star,
-  Download,
-  Bell,
   Settings,
   X,
   ChevronLeft,
   Zap,
   Send,
   KanbanSquare,
+  Instagram,
+  WandSparkles,
+  MoreHorizontal,
   Inbox,
+  Bot,
   BarChart3,
-  Clock3,
+  Star,
+  Download,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const menuItems = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Início', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Pesquisar', href: '/dashboard/search', icon: Search },
-  { label: 'Leads', href: '/dashboard/leads', icon: Users },
+  { label: 'Pesquisa Instagram', href: '/dashboard/instagram-mass', icon: Instagram },
+  { label: 'Oportunidades', href: '/dashboard/opportunities', icon: Users },
   { label: 'CRM', href: '/dashboard/crm', icon: KanbanSquare },
   { label: 'Campanhas', href: '/dashboard/campaigns', icon: Send },
-  { label: 'Central de Contatos', href: '/dashboard/inbox', icon: Inbox },
-  { label: 'Automações', href: '/dashboard/automations', icon: Clock3 },
+  { label: 'Estúdio IA', href: '/dashboard/site-studio', icon: WandSparkles },
+  { label: 'Configurações', href: '/dashboard/settings', icon: Settings },
+];
+
+const secondaryItems = [
+  { label: 'Central de contactos', href: '/dashboard/inbox', icon: Inbox },
+  { label: 'Automações', href: '/dashboard/automations', icon: Bot },
   { label: 'Análises', href: '/dashboard/analytics', icon: BarChart3 },
   { label: 'Favoritos', href: '/dashboard/favorites', icon: Star },
   { label: 'Exportações', href: '/dashboard/exports', icon: Download },
   { label: 'Notificações', href: '/dashboard/notifications', icon: Bell },
-  { label: 'Configurações', href: '/dashboard/settings', icon: Settings },
 ];
 
 export function Sidebar() {
@@ -61,10 +69,7 @@ export function Sidebar() {
                 </div>
                 <span className="text-lg font-bold">LeadHunter</span>
               </div>
-              <button
-                onClick={toggleSidebar}
-                className="rounded-lg p-1.5 hover:bg-muted lg:hidden"
-              >
+              <button onClick={toggleSidebar} className="rounded-lg p-1.5 hover:bg-muted lg:hidden">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -88,6 +93,30 @@ export function Sidebar() {
                   </button>
                 );
               })}
+              <details className="group pt-1" open={secondaryItems.some((item) => pathname === item.href)}>
+                <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+                  <MoreHorizontal className="h-5 w-5" />
+                  Mais ferramentas
+                </summary>
+                <div className="mt-1 space-y-1 border-l border-border pl-3">
+                  {secondaryItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <button
+                        key={item.href}
+                        onClick={() => router.push(item.href)}
+                        className={cn(
+                          'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                          isActive ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </details>
             </nav>
 
             <div className="border-t border-border p-4">

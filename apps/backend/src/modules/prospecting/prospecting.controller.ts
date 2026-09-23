@@ -4,7 +4,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ProspectingService } from './prospecting.service';
 import {
-  CreateAutomationDto, CreateContactEventDto, GenerateMessagesDto, UpdateAutomationDto,
+  AuditWebsitesDto, CreateAutomationDto, CreateContactEventDto, GenerateMessagesDto, UpdateAutomationDto,
   UpdateLeadCrmDto, ValidateContactsDto,
 } from './dto/prospecting.dto';
 
@@ -17,6 +17,14 @@ export class ProspectingController {
   @Get('states') states(@CurrentUser('id') userId: string, @Query('companyIds') ids = '') { return this.service.states(userId, ids.split(',').filter(Boolean)); }
   @Patch('leads/:id') updateLead(@CurrentUser('id') userId: string, @Param('id') id: string, @Body() dto: UpdateLeadCrmDto) { return this.service.updateLead(userId, id, dto); }
   @Post('validate') validate(@CurrentUser('id') userId: string, @Body() dto: ValidateContactsDto) { return this.service.validateContacts(userId, dto); }
+  @Post('audit-websites') audit(@CurrentUser('id') userId: string, @Body() dto: AuditWebsitesDto) { return this.service.auditWebsites(userId, dto.companyIds); }
+  @Post('commercial-pack/:id') pack(@CurrentUser('id') userId: string, @Param('id') id: string) { return this.service.commercialPack(userId, id); }
+  @Get('commercial-pack/:id/pdf') async packPdf(@CurrentUser('id') userId: string, @Param('id') id: string, @Res() response: Response) {
+    const result = await this.service.commercialPackPdf(userId, id);
+    response.setHeader('Content-Type', 'application/pdf');
+    response.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+    return response.send(result.buffer);
+  }
   @Get('events') events(@CurrentUser('id') userId: string, @Query('channel') channel?: string) { return this.service.events(userId, channel); }
   @Post('events') event(@CurrentUser('id') userId: string, @Body() dto: CreateContactEventDto) { return this.service.addEvent(userId, dto); }
   @Post('generate-messages') generate(@CurrentUser('id') userId: string, @Body() dto: GenerateMessagesDto) { return this.service.generateMessages(userId, dto); }

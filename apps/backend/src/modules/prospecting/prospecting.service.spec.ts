@@ -32,6 +32,7 @@ describe('ProspectingService', () => {
       searches as any,
       notifications as any,
       { get: jest.fn(() => undefined) } as unknown as ConfigService,
+      undefined,
     );
   });
 
@@ -74,6 +75,13 @@ describe('ProspectingService', () => {
     expect(result.mode).toBe('local');
     expect(result.messages[0]!.message).toContain('ainda não têm um site próprio');
     expect(result.messages[0]!.message).toContain('REMOVER');
+  });
+
+  it('puts a contactable company without a website in high priority', async () => {
+    const result = await service.pipeline('user-1');
+
+    expect(result.leads[0]!.opportunity).toMatchObject({ priority: 'HIGH', score: 67 });
+    expect(result.leads[0]!.opportunity.recommendedAction).toBe('Criar demonstração de landing page');
   });
 
   it('recognizes opt-out replies and exposes analytics', async () => {

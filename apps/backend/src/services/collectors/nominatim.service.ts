@@ -73,9 +73,11 @@ export class NominatimService {
         googleMapsLink: item.lat && item.lon ? `https://maps.google.com/?q=${item.lat},${item.lon}` : null,
         source: 'nominatim',
         sourceId: String(item.place_id || item.osm_id || ''),
-        website: item.extratags?.website || null,
-        phone: item.extratags?.phone || null,
-        email: item.extratags?.email || null,
+        website: item.extratags?.website || item.extratags?.['contact:website'] || null,
+        phone: item.extratags?.phone || item.extratags?.['contact:phone'] || null,
+        email: item.extratags?.email || item.extratags?.['contact:email'] || null,
+        instagram: item.extratags?.['contact:instagram'] || item.extratags?.instagram || null,
+        facebook: item.extratags?.['contact:facebook'] || item.extratags?.facebook || null,
       }));
     } catch (error: any) {
       this.logger.warn(`Nominatim search error: ${error.message}`);

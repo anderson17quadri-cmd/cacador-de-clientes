@@ -22,6 +22,10 @@ export class ValidateContactsDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(500) limit?: number;
 }
 
+export class AuditWebsitesDto {
+  @IsArray() @ArrayMaxSize(50) @IsUUID('4', { each: true }) companyIds!: string[];
+}
+
 export class CreateContactEventDto {
   @IsUUID('4') companyId!: string;
   @IsIn(['whatsapp', 'email', 'phone', 'instagram']) channel!: string;
