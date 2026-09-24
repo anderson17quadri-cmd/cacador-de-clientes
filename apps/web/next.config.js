@@ -4,7 +4,9 @@ const nextConfig = {
   ...(process.env.NEXT_STANDALONE === 'true' ? { output: 'standalone' } : {}),
   transpilePackages: ['@leadhunter/types', '@leadhunter/utils', '@leadhunter/config'],
   images: {
-    domains: ['lh3.googleusercontent.com', 'avatars.githubusercontent.com', 'maps.googleapis.com'],
+    remotePatterns: ['lh3.googleusercontent.com', 'avatars.githubusercontent.com', 'maps.googleapis.com'].map(
+      (hostname) => ({ protocol: 'https', hostname }),
+    ),
   },
   async rewrites() {
     return [
